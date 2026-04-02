@@ -23,7 +23,7 @@
       </header>
 
       <!-- 分类筛选 -->
-      <div class="filter-section" v-if="viewMode === 'card'">
+      <div class="filter-section">
         <!-- 地理位置分类 -->
         <div class="filter-group">
           <span class="filter-label">📍 位置</span>
@@ -77,6 +77,7 @@
           :key="food.id"
           class="food-card"
           :class="{ active: selectedFood === food.id, 'card-highlight': highlightCard === food.id }"
+          :style="{ animationDelay: getCardDelay(food.id) }"
           @click="showFoodDetail(food)"
         >
           <div class="card-header">
@@ -86,9 +87,9 @@
             </div>
           </div>
           <div class="food-badges">
-            <div v-for="tag inDisplayTags(food.tags)" :key="tag" class="food-badge">
+            <div v-for="tag in inDisplayTags(food.tags)" :key="tag" class="food-badge">
               <svg class="pin-icon" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 0a2.5 2.5 0 0 0-2.5 2.5c0 2 2.5 6.5 2.5 6.5s2.5-4.5 2.5-6.5A2.5 2.5 0 0 0 8 0zm0 3a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                <path d="M8 0a2.5 2.5 0 0 0-2.5 2.5c0 2 2.5 6.5 2.5 6.5s2.5-4.5 2.5-6.5A2.5 2.5 0 0 8 0zm0 3a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
               </svg>
               {{ tag }}
             </div>
@@ -97,19 +98,19 @@
           <div class="card-meta">
             <span class="meta-item">
               <svg class="meta-icon" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 3a1 1 0 0 1 1 1v1.5h4a1 1 0 0 1 0 2H9v1.5h4a1 1 0 0 1 0 2H9v1.5h4a1 1 0 0 1 0 2H9V14a1 1 0 0 1-2 0v-1H3a1 1 0 0 1 0-2h4V9H3a1 1 0 0 1 0-2h4V6.5H3a1 1 0 0 1 0-2h4V4a1 1 0 0 1 1-1z"/>
+                <path d="M8 3a1 1 0 0 1 1 1v1.5h4a1 1 0 0 1 0 2H9v1.5h4a1 1 0 0 1 0 2H9v1.5h4a1 1 0 0 1 0 2H9v1.5h4a1 1 0 0 1 0 2H9V14a1 1 0 0 1-2 0v-1H3a1 1 0 0 1 0-2h4V9H3a1 1 0 0 1 0-2h4V6.5H3a1 1 0 0 1 0-2h4V4a1 1 0 0 1 1-1z"/>
               </svg>
               {{ food.price }}
             </span>
             <span class="meta-item">
               <svg class="meta-icon" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm0 1a5 5 0 1 1 0 10A5 5 0 0 1 8 3zm1 3.5a.5.5 0 0 0-.5.5v1H7a.5.5 0 0 0 0 1h1.5v1a.5.5 0 0 0 1 0v-1H11a.5.5 0 0 0 0-1H9.5v-1a.5.5 0 0 0-.5-.5z"/>
+                <path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm0 1a5 5 0 1 1 0 10A5 5 0 0 1 8 3zm1 3.5a.5.5 0 0 0-.5.5v1H7a.5.5 0 0 0 1h1.5v1a.5.5 0 0 1 0v-1H11a.5.5 0 0 0-1H9.5v-1a.5.5 0 0 0 1 0v-1H9V14a1 1 0 0 1-2 0v-1H3a.5.5 0 0 0 1 0 2H3V14a1 1 0 0 1-2 0v-1H3a.5.5 0 0 0 1 0-2h4V6.5H3a.5.5 0 0 0 1 0 2H3V4a1 1 0 0 0 1 1z"/>
               </svg>
               {{ food.distance }}
             </span>
             <span class="meta-item location-tag">
               <svg class="meta-icon" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 0a2.5 2.5 0 0 0-2.5 2.5c0 2 2.5 6.5 2.5 6.5s2.5-4.5 2.5-6.5A2.5 2.5 0 0 0 8 0zm0 3a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                <path d="M8 0a2.5 2.5 0 0 0-2.5 2.5c0 2 2.5 6.5 2.5 6.5s2.5-4.5 2.5-6.5A2.5 2.5 0 0 8 0zm0 3a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
               </svg>
               {{ food.location }}
             </span>
@@ -131,7 +132,7 @@
               }"
               :class="{ highlight: food.id === currentHighlight }"
             >
-              <div class="segment-content">
+              <div class="segment-content" :style="{ transform: `translateX(-50%) rotate(${-index * segmentAngle}deg)` }">
                 {{ food.name }}
               </div>
             </div>
@@ -146,13 +147,13 @@
       <!-- Footer -->
       <footer class="footer">
         <button
-          class="primary-button"
-          :class="{ spinning: isSpinning }"
-          :disabled="isSpinning"
-          @click="startLottery"
-        >
+            class="primary-button"
+            :class="{ spinning: isSpinning }"
+            :disabled="isSpinning"
+            @click="startLottery"
+          >
           <svg v-if="!isSpinning" class="rocket-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2.5c0 0-6.5 7.5-6.5 13.5 0 2.8 1.6 5.2 4 6.4l-1.5 1.5 1.5 1.5 2.5-2.5 2.5 2.5 1.5-1.5-1.5-1.5c2.4-1.2 4-3.6 4-6.4 0-6-6.5-13.5-6.5-13.5z"/>
+            <path d="M12 2.5c0 0-6.5 7.5-6.5 13.5 0 2.8 1.6 5.2 4 6.4l-1.5 1.5 1.5 1.5 2.5-2.5 2.5 1.5-1.5-1.5-1.5c2.4-1.2 4-3.6 4-6.4 0-6.6.5-13.5-6.5-13.5z"/>
           </svg>
           <span v-else class="spinner">⟳</span>
           {{ isSpinning ? '正在抽奖...' : '跑马灯抽奖' }}
@@ -240,7 +241,7 @@ const selectedFood = ref(null)
 const selectedLocation = ref('all')
 const selectedCategory = ref('all')
 const showDetailModal = ref(false)
-const detailFood = ref(null)
+const detailFood = (null)
 const highlightCard = ref(null)
 
 // 跑马灯相关
@@ -278,20 +279,21 @@ const foods = ref([
   { id: 14, name: '石锅拌饭', tags: ['中餐', '快餐'], location: '校内', description: '韩式拌饭，滋滋作响，酱香浓郁', detail: '石锅现做，配上韩式辣酱，半生半熟的米饭口感超棒。', price: '¥18', distance: '2分钟', ratingLabel: '夯', ratingClass: 'hot', features: ['韩式', '滋滋作响', '实惠'] }
 ])
 
+// 筛选后的食物
+const filteredFoods = computed(() => {
+  return foods.value.filter(food => {
+    const locationMatch = selectedLocation.value === 'all' || food.location === selectedLocation.value
+    const categoryMatch = selectedCategory.value === 'all' || food.tags.includes(selectedCategory.value)
+    return locationMatch && categoryMatch
+  })
+})
+
+
 // 更新转盘角度
 watch(filteredFoods, (newFoods) => {
   if (newFoods.length > 0) {
     segmentAngle.value = 360 / newFoods.length
   }
-})
-
-// 筛选后的食物
-const filteredFoods = computed(() => {
-  return foods.value.filter(food => {
-    const location = selectedLocation.value === 'all' || food.location === selectedLocation.value
-    const category = selectedCategory.value === 'all' || food.tags.includes(selectedCategory.value)
-    return location && category
-  })
 })
 
 // 监听筛选变化，触发动画
@@ -302,6 +304,12 @@ watch([selectedLocation, selectedCategory], () => {
 // 获取卡片显示的标签
 function inDisplayTags(tags) {
   return tags.slice(0, 2)
+}
+
+// 获取卡片动画延迟
+function getCardDelay(id) {
+  const index = filteredFoods.value.findIndex(f => f.id === id)
+  return `${index * 0.05}s`
 }
 
 // 切换模式
@@ -362,7 +370,7 @@ function startLottery() {
           highlightCard.value = null
           isSpinning.value = false
           showWinnerModal.value = true
-          winner food.value = finalFood
+          winnerFood.value = finalFood
         }, 150)
       }
     }
@@ -442,6 +450,7 @@ function resetData() {
 </script>
 
 <style scoped>
+/* 基础样式 */
 .food-selector {
   background-color: #FDF9F1;
   min-height: 100vh;
@@ -457,6 +466,7 @@ function resetData() {
   gap: 32px;
 }
 
+/* Header */
 .header {
   text-align: center;
 }
@@ -466,6 +476,18 @@ function resetData() {
   font-size: 32px;
   font-weight: bold;
   margin: 0 0 24px 0;
+  animation: fadeInDown 0.6s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .toggle-switch {
@@ -486,18 +508,56 @@ function resetData() {
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .toggle-item.active {
   background-color: #FFF;
   color: #333;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: scale(1.02);
 }
 
+.toggle-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: #FF7354;
+  border-radius: 2px;
+  animation: widthPulse 1s ease-in-out infinite;
+}
+
+@keyframes widthPulse {
+  0%, 100% { width: 20px; }
+  50% { width: 30px; }
+}
+
+.toggle-item:hover:not(.active) {
+  color: #333;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Filter Section */
 .filter-section {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  animation: filterSlideIn 0.3s ease;
+}
+
+@keyframes filterSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .filter-group {
@@ -529,54 +589,111 @@ function resetData() {
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-tag::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 115, 84, 0.1);
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+}
+
+.filter-tag:hover::before {
+  width: 200%;
+  height: 200%;
 }
 
 .filter-tag:hover {
   border-color: #FF7354;
   color: #FF7354;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 115, 84, 0.15);
 }
 
 .filter-tag.active {
   background: #FF7354;
   border-color: #FF7354;
   color: #FFF;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 115, 84, 0.3);
 }
 
+/* Grid System */
 .food-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 }
 
+/* Card Component */
 .food-card {
   background-color: #FFFFFF;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
+  animation: cardEnter 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+  animation-fill-mode: backwards;
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.food-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.food-card:hover::before {
+  left: 100%;
 }
 
 .food-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  transform: translateY(-8px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
 }
 
 .food-card.active {
   background-color: #6BD09D;
-  box-shadow: 0 12px 24px rgba(107, 208, 157, 0.4);
+  box-shadow: 0 16px 40px rgba(107, 208, 157, 0.5);
+  transform: scale(1.02);
 }
 
 .food-card.card-highlight {
-  animation: cardPulse 0.3s ease;
+  animation: cardPulse 0.15s ease;
 }
 
 @keyframes cardPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); background-color: #FFD93D; }
+  50% { transform: scale(1.08); background-color: #FFD93D; }
 }
 
 .card-header {
@@ -591,18 +708,21 @@ function resetData() {
   font-size: 18px;
   font-weight: bold;
   margin: 0;
+  flex: 1;
 }
 
 .food-card.active .food-title {
   color: #FFFFFF;
 }
 
+/* Rating Badge */
 .rating-badge {
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: bold;
   white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
 .rating-badge.large {
@@ -617,10 +737,20 @@ function resetData() {
   box-shadow: 0 2px 6px rgba(255, 165, 0, 0.3);
 }
 
+.rating-badge.top-tier:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 165, 0, 0.5);
+}
+
 .rating-badge.hot {
   background: linear-gradient(135deg, #FF6B6B, #FF4757);
   color: #FFF;
   box-shadow: 0 2px 6px rgba(255, 71, 87, 0.3);
+}
+
+.rating-badge.hot:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.5);
 }
 
 .rating-badge.npc {
@@ -643,8 +773,14 @@ function resetData() {
   padding: 0 8px;
   background-color: #FFF0EE;
   color: #E67373;
-  font-size: 12px;
+  font-size: 11px;
   border-radius: 4px;
+  align-self: flex-start;
+  transition: all 0.3s ease;
+}
+
+.food-card:hover .food-badge {
+  transform: scale(1.05);
 }
 
 .food-card.active .food-badge {
@@ -663,15 +799,22 @@ function resetData() {
   line-height: 1.5;
   margin: 0;
   flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.3s ease;
 }
 
 .food-card.active .food-description {
   color: #FFFFFF;
 }
 
+/* Card Meta */
 .card-meta {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 6px;
   margin-top: 4px;
 }
 
@@ -681,6 +824,7 @@ function resetData() {
   gap: 4px;
   color: #666;
   font-size: 12px;
+  transition: all 0.3s ease;
 }
 
 .food-card.active .meta-item {
@@ -698,6 +842,7 @@ function resetData() {
   opacity: 0.6;
 }
 
+/* Wheel Mode */
 .wheel-mode {
   display: flex;
   flex-direction: column;
@@ -709,18 +854,18 @@ function resetData() {
 
 .wheel-container {
   position: relative;
-  width: 350px;
-  height: 350px;
+  width: 380px;
+  height: 380px;
 }
 
 .wheel {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: #F2EFE8;
+  background: conic-gradient(from 0deg, #F2EFE8 0deg, #E8E5DE 30deg, #F2EFE8 60deg, #E8E5DE 90deg, #F2EFE8 120deg, #E8E5DE 150deg, #F2EFE8 180deg, #E8E5DE 210deg, #F2EFE8 240deg, #E8E5DE 270deg, #F2EFE8 300deg, #E8E5DE 330deg, #F2EFE8 360deg);
   position: relative;
   transition: transform 0.1s ease-out;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), inset 0 0 60px rgba(255, 255, 255, 0.3);
 }
 
 .wheel.spinning {
@@ -729,41 +874,57 @@ function resetData() {
 
 .wheel-pointer {
   position: absolute;
-  top: -20px;
+  top: -10px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 32px;
+  font-size: 40px;
   color: #FF7354;
   z-index: 10;
+  filter: drop-shadow(0 4px 8px rgba(255, 115, 84, 0.4));
+  animation: pointerBounce 1s ease-in-out infinite;
+}
+
+@keyframes pointerBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-5px); }
 }
 
 .wheel-segment {
   position: absolute;
   width: 2px;
   height: 50%;
-  top: 50%;
+  top: 0;
   left: 50%;
-  transform-origin: left center;
+  transform-origin: bottom center;
+  transition: all 0.1s ease;
+}
+
+.wheel-segment.highlight {
+  width: 4px;
+  height: 55%;
 }
 
 .segment-content {
   position: absolute;
-  top: -20px;
-  left: 60%;
-  transform: rotate(-90deg);
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-90deg);
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 13px;
   color: #666;
-  padding: 4px 8px;
-  border: 4px;
-  background: #FFF;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .wheel-segment.highlight .segment-content {
   background: #FF7354;
   color: #FFF;
-  transform: rotate(-90deg) scale(1.1);
+  transform: translateX(-50%) rotate(-90deg) scale(1.2);
+  box-shadow: 0 4px 16px rgba(255, 115, 84, 0.4);
 }
 
 .wheel-result-container {
@@ -780,6 +941,7 @@ function resetData() {
   color: #FF7354;
 }
 
+/* Footer */
 .footer {
   display: flex;
   flex-direction: column;
@@ -801,12 +963,33 @@ function resetData() {
   font-weight: bold;
   cursor: pointer;
   box-shadow: 0 10px 20px rgba(255, 115, 84, 0.3);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.primary-button:hover::before {
+  left: 100%;
 }
 
 .primary-button:hover:not(.spinning) {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(255, 115, 84, 0.4);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 16px 32px rgba(255, 115, 84, 0.4);
+}
+
+.primary-button:active:not(.spinning) {
+  transform: translateY(-2px) scale(1);
 }
 
 .primary-button:disabled {
@@ -815,12 +998,17 @@ function resetData() {
 }
 
 .rocket-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s ease;
+}
+
+.primary-button:hover .rocket-icon {
+  transform: rotate(-15deg);
 }
 
 .spinner {
-  font-size: 18px;
+  font-size: 20px;
   animation: spin 1s linear infinite;
 }
 
@@ -844,29 +1032,52 @@ function resetData() {
   border-color: #999;
   color: #333;
   background-color: rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
 }
 
+/* Modal Overlay */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px;
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
   background: #FFFFFF;
-  border-radius: 20px;
+  border-radius: 24px;
   max-width: 480px;
-  width: 90%;
-  max-height: 80vh;
+  width: 100%;
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
+  animation: modalSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal-header {
@@ -879,16 +1090,15 @@ function resetData() {
 
 .modal-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 32px;
-  height: 32px;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
   border: none;
   background: #F2EFE8;
   border-radius: 50%;
-  font-size: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -900,6 +1110,8 @@ function resetData() {
 .modal-close:hover {
   background: #E0E0E0;
   color: #333;
+  transform: rotate(90deg) scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 115, 84, 0.4);
 }
 
 .modal-close svg {
@@ -913,23 +1125,32 @@ function resetData() {
 
 .detail-name {
   color: #333;
-  font-size: 24px;
+  font-size: 26px;
   margin: 0;
   font-weight: bold;
+  line-height: 1.2;
 }
 
 .detail-info {
   background: #F9F9F9;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: 12px 0;
   border-bottom: 1px solid #E8E8E8;
+  transition: background 0.2s ease;
+}
+
+.info-row:hover {
+  background: rgba(255, 115, 84, 0.05);
+  border-radius: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .info-row:last-child {
@@ -944,24 +1165,25 @@ function resetData() {
 .info-value {
   color: #333;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .detail-description {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .detail-description h3 {
   color: #333;
   font-size: 16px;
-  margin: 0 0 12px 0;
+  margin: 0 0 16px 0;
+  font-weight: 600;
 }
 
 .detail-description p {
   color: #666;
   font-size: 14px;
-  line-height: 1.6;
-  margin: 0 0 8px 0;
+  line-height: 1.7;
+  margin: 0 0 12px 0;
 }
 
 .detail-tags {
@@ -972,16 +1194,23 @@ function resetData() {
 }
 
 .detail-tags .tag {
-  background: #FFF0EE;
+  background: linear-gradient(135deg, #FFF0EE, #FFE8E8);
   color: #E67373;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.detail-tags .tag:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(230, 115, 115, 0.3);
 }
 
 .select-button {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   border: none;
   background: linear-gradient(90deg, #FF8E6D, #FF7354);
   color: #FFF;
@@ -989,15 +1218,36 @@ function resetData() {
   font-weight: bold;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 16px rgba(255, 115, 84, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(255, 115, 84, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.select-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: all 0.6s ease;
+}
+
+.select-button:active::after {
+  width: 300%;
+  height: 300%;
 }
 
 .select-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(255, 115, 84, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(255, 115, 84, 0.45);
 }
 
+/* Winner Modal */
 .winner-modal {
   position: fixed;
   top: 0;
@@ -1005,26 +1255,54 @@ function resetData() {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
+  padding: 20px;
+  animation: modalFadeIn 0.3s ease;
 }
 
 .winner-content {
   background: #FFFFFF;
-  border-radius: 20px;
-  padding: 40px;
+  border-radius: 32px;
+  padding: 48px 40px;
   text-align: center;
   box-shadow: 0 30px 100px rgba(0, 0, 0, 0.3);
+  animation: winnerBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   position: relative;
   max-width: 400px;
   width: 100%;
 }
 
+@keyframes winnerBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-10deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(5deg);
+  }
+  70% {
+    transform: scale(0.95) rotate(-3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 .winner-icon {
   font-size: 64px;
   margin-bottom: 16px;
+  animation: iconBounce 1s ease infinite;
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-10px) rotate(-10deg); }
+  75% { transform: translateY(-5px) rotate(10deg); }
 }
 
 .winner-title {
@@ -1045,6 +1323,7 @@ function resetData() {
   font-size: 36px;
   margin: 0 0 24px 0;
   font-weight: bold;
+  text-shadow: 0 2px 8px rgba(255, 115, 84, 0.3);
 }
 
 .winner-badges {
@@ -1052,6 +1331,7 @@ function resetData() {
   justify-content: center;
   gap: 12px;
   margin-bottom: 32px;
+  flex-wrap: wrap;
 }
 
 .winner-badge {
@@ -1083,6 +1363,7 @@ function resetData() {
 .winner-badge.location {
   background: #F2EFE8;
   color: #666;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .winner-button {
@@ -1100,10 +1381,11 @@ function resetData() {
 }
 
 .winner-button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px) scale(1.02);
   box-shadow: 0 12px 32px rgba(255, 115, 84, 0.5);
 }
 
+/* Responsive */
 @media (max-width: 768px) {
   .food-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1120,6 +1402,16 @@ function resetData() {
 
   .filter-tags {
     width: 100%;
+  }
+
+  .wheel-container {
+    width: 300px;
+    height: 300px;
+  }
+
+  .segment-content {
+    font-size: 11px;
+    padding: 4px 8px;
   }
 }
 
@@ -1138,8 +1430,24 @@ function resetData() {
   }
 
   .wheel-container {
-    width: 280px;
-    height: 280px;
+    width: 260px;
+    height: 260px;
+  }
+
+  .modal-content {
+    border-radius: 20px;
+  }
+
+  .modal-body {
+    padding: 0 20px 20px 20px;
+  }
+
+  .detail-name {
+    font-size: 22px;
+  }
+
+  .winner-name {
+    font-size: 28px;
   }
 }
 </style>
