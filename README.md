@@ -18,6 +18,7 @@
 - **构建工具**: Vite 8
 - **路由**: Vue Router 4
 - **UI框架**: Bootstrap 5.3 + Bootstrap Icons 1.13
+- **后端服务**: Supabase (数据存储与认证)
 - **交互库**: Popper.js 2.11
 
 ## 项目结构
@@ -28,8 +29,15 @@ ewew/
 │   ├── assets/          # 静态资源（图片、图标等）
 │   ├── components/      # 可复用组件
 │   │   └── HelloWorld.vue
+│   ├── composables/     # 组合式函数
+│   │   ├── useAuth.js   # 认证相关逻辑
+│   │   ├── useData.js   # 数据管理逻辑
+│   │   └── useRatings.js # 评分系统逻辑
+│   ├── lib/             # 工具库
+│   │   └── supabase.js  # Supabase客户端配置
 │   ├── views/           # 页面视图
 │   │   ├── HomeView.vue           # 首页 - 餐馆推荐与搜索
+│   │   ├── AuthView.vue           # 认证页面 - 用户登录/注册
 │   │   ├── FoodSelectorView.vue   # 食物选择器 - 跑马灯抽奖
 │   │   └── RestaurantDetailView.vue  # 餐馆详情页
 │   ├── router/          # 路由配置
@@ -37,6 +45,8 @@ ewew/
 │   ├── App.vue          # 根组件
 │   ├── main.js          # 应用入口
 │   └── style.css        # 全局样式
+├── supabase/            # Supabase配置
+│   └── schema.sql       # 数据库模式
 ├── public/              # 公共资源
 │   ├── favicon.svg
 │   └── icons.svg
@@ -46,6 +56,11 @@ ewew/
 ```
 
 ## 功能特性
+
+### 用户认证
+- 用户注册与登录
+- 基于Supabase的认证系统
+- 安全的密码管理
 
 ### 首页
 - 餐馆搜索功能
@@ -76,10 +91,26 @@ ewew/
 
 ## 快速开始
 
-### 环境要求
+### 环境配置
 
-- Node.js >= 18.0.0
-- npm >= 9.0.0
+1. 复制环境变量模板文件：
+```bash
+cp .env.example .env
+```
+
+2. 在 `.env` 文件中配置 Supabase 相关变量：
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### 数据库设置
+
+项目使用 Supabase 作为后端数据库。数据库模式定义在 `supabase/schema.sql` 中。
+
+1. 在 Supabase 控制台创建新项目
+2. 执行 `supabase/schema.sql` 中的 SQL 语句创建表结构
+3. 配置认证设置（允许邮箱注册等）
 
 ### 安装依赖
 
@@ -103,6 +134,14 @@ npm run build
 
 构建产物将输出到 `dist/` 目录
 
+### 部署
+
+项目可以部署到静态站点托管服务如 Vercel、Netlify 或 GitHub Pages：
+
+1. 构建项目：`npm run build`
+2. 将 `dist/` 目录上传到托管服务
+3. 配置环境变量（Supabase URL 和 Key）
+
 ### 预览构建结果
 
 ```bash
@@ -125,11 +164,22 @@ npm run preview
 }
 ```
 
-### 样式定制
+### 组合式函数 (Composables)
 
-- 项目使用 Bootstrap 5.3，全局样式在 `src/style.css` 中定义
-- 组件样式使用 scoped CSS，避免样式污染
-- 主题色使用 CSS 变量方便统一管理
+项目使用 Vue 3 组合式函数来组织业务逻辑：
+
+- `useAuth.js`: 用户认证相关逻辑（登录、注册、登出）
+- `useData.js`: 数据获取和管理（餐厅数据、用户数据）
+- `useRatings.js`: 评分系统逻辑（评价提交、评分计算）
+
+在组件中使用示例：
+```javascript
+import { useAuth } from '@/composables/useAuth'
+import { useData } from '@/composables/useData'
+
+const { user, login, logout } = useAuth()
+const { restaurants, loading } = useData()
+```
 
 ### 路由使用
 
@@ -153,6 +203,7 @@ const id = route.params.id
 | 路由路径 | 路由名称 | 组件 | 说明 |
 |---------|---------|------|------|
 | `/` | home | HomeView | 首页 |
+| `/auth` | auth | AuthView | 用户认证页面 |
 | `/food-selector` | food-selector | FoodSelectorView | 食物选择器 |
 | `/restaurant/:id` | restaurant-detail | RestaurantDetailView | 餐馆详情页 |
 
@@ -162,6 +213,23 @@ const id = route.params.id
 - Firefox
 - Safari
 - Edge
+
+## 贡献指南
+
+欢迎为项目贡献代码！请遵循以下步骤：
+
+1. Fork 本仓库
+2. 创建特性分支：`git checkout -b feature/new-feature`
+3. 提交更改：`git commit -m 'Add new feature'`
+4. 推送分支：`git push origin feature/new-feature`
+5. 提交 Pull Request
+
+### 代码规范
+
+- 使用 Vue 3 Composition API + `<script setup>` 语法
+- 遵循 ESLint 配置
+- 组件样式使用 scoped CSS
+- 提交消息使用中文，描述清晰
 
 ## 许可证
 
