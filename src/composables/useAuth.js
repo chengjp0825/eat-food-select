@@ -110,6 +110,7 @@ export function useAuth() {
   // 计算属性
   const isAuthenticated = computed(() => !!user.value)
   const userEmail = computed(() => user.value?.email || '')
+  const isAdmin = computed(() => profile.value?.is_admin || false)
 
   return {
     user,
@@ -117,6 +118,7 @@ export function useAuth() {
     loading,
     isAuthenticated,
     userEmail,
+    isAdmin,
     initialize,
     signUp,
     signIn,

@@ -38,6 +38,12 @@
                 <button class="settings-btn" @click="showAppModal = true" title="补充餐馆">
                   🏪
                 </button>
+                <button v-if="isAdmin" class="settings-btn" @click="loadApplications(); showAppsModal = true" title="申请管理">
+                  📋
+                </button>
+                <button v-else class="settings-btn" @click="loadApplications(); showAppsModal = true" title="我的申请">
+                  📋
+                </button>
                 <button class="settings-btn" @click="showSettingsModal = true" title="设置">
                   ⚙️
                 </button>
@@ -713,6 +719,60 @@
       </div>
     </div>
 
+    <!-- 申请管理弹窗 -->
+    <div class="apps-modal" v-if="showAppsModal" @click="showAppsModal = false">
+      <div class="apps-content" @click.stop>
+        <button class="modal-close" @click="showAppsModal = false">
+          ✕
+        </button>
+
+        <div class="apps-header">
+          <div class="apps-icon">📋</div>
+          <h2 class="apps-title">{{ isAdmin ? '申请管理' : '我的申请' }}</h2>
+        </div>
+
+        <!-- 加载状态 -->
+        <div v-if="appsLoading" class="apps-loading">
+          <div class="loading-spinner"></div>
+          <p>加载中...</p>
+        </div>
+
+        <!-- 申请列表 -->
+        <div v-else-if="applications.length > 0" class="apps-list">
+          <div
+            v-for="app in applications"
+            :key="app.id"
+            class="app-item"
+            :class="'status-' + app.status"
+          >
+            <div class="app-item-header">
+              <span class="app-item-name">{{ app.name }}</span>
+              <span class="app-item-status" :class="app.status">
+                {{ app.status === 'pending' ? '待审核' : app.status === 'approved' ? '已通过' : '已驳回' }}
+              </span>
+            </div>
+            <div class="app-item-info">
+              <span>📍 {{ app.location }}</span>
+              <span>💰 {{ app.price || '未填写' }}</span>
+            </div>
+            <div class="app-item-desc" v-if="app.description">{{ app.description }}</div>
+            <div class="app-item-date">提交于：{{ formatDate(app.created_at) }}</div>
+            <!-- 管理员操作按钮 -->
+            <div v-if="isAdmin && app.status === 'pending'" class="app-item-actions">
+              <button class="approve-btn" @click="handleApplication(app.id, 'approved')">批准</button>
+              <button class="reject-btn" @click="handleApplication(app.id, 'rejected')">驳回</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-else class="apps-empty">
+          <span class="empty-icon">📭</span>
+          <p>暂无申请记录</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 餐馆申请弹窗 -->
     <div class="app-modal" v-if="showAppModal" @click="closeAppModal">
       <div class="app-content" @click.stop>
@@ -845,7 +905,7 @@ import {
   userRatings
 } from '../composables/useRatings'
 
-const { user, isAuthenticated, userEmail, signOut, profile, updateProfile } = useAuth()
+const { user, isAuthenticated, userEmail, signOut, profile, updateProfile, isAdmin } = useAuth()
 
 const viewMode = ref('card')
 const selectedFood = ref(null)
@@ -924,16 +984,86 @@ const favoritesCount = computed(() => favoritesList.value?.length || 0)
 // 餐馆申请弹窗状态
 const showAppModal = ref(false)
 const appForm = ref({
+  type: 'restaurant', // 'restaurant' 或 'feedback'
   name: '',
   tags: [],
   location: '',
   description: '',
   detail: '',
   price: '',
-  distance: ''
+  distance: '',
+  feedback_content: ''
 })
 const appLoading = ref(false)
 const appSuccess = ref(false)
+
+// 申请列表管理
+const showAppsModal = ref(false)
+const applications = ref([])
+const appsLoading = ref(false)
+
+// 加载所有申请（管理员）或我的申请（普通用户）
+async function loadApplications() {
+  appsLoading.value = true
+  try {
+    const { data, error } = await supabase
+      .from('restaurant_applications')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    applications.value = data || []
+  } catch (error) {
+    console.error('Error loading applications:', error)
+    applications.value = []
+  } finally {
+    appsLoading.value = false
+  }
+}
+
+// 处理申请（批准或拒绝）
+async function handleApplication(appId, status) {
+  const app = applications.value.find(a => a.id === appId)
+  if (!app) return
+  if (app.status !== 'pending') {
+    alert('该申请已处理')
+    return
+  }
+
+  try {
+    const { error } = await supabase
+      .from('restaurant_applications')
+      .update({ status })
+      .eq('id', appId)
+
+    if (error) throw error
+
+    // 如果批准，添加到餐厅列表
+    if (status === 'approved') {
+      await supabase.from('restaurants').insert({
+        name: app.name,
+        tags: app.tags,
+        location: app.location,
+        description: app.description,
+        detail: app.detail,
+        price: app.price,
+        distance: app.distance,
+        rating_label: 'npc',
+        rating_class: 'npc'
+      })
+    }
+
+    // 刷新列表和数据
+    await loadApplications()
+    if (!isAdmin.value) {
+      await loadRestaurants() // 刷新餐厅列表
+    }
+    alert(status === 'approved' ? '已批准' : '已驳回')
+  } catch (error) {
+    console.error('Error handling application:', error)
+    alert('操作失败')
+  }
+}
 
 // 加载餐厅评价列表
 async function loadRestaurantRatings(restaurantId) {
@@ -1419,29 +1549,45 @@ function toggleAppTag(tag) {
 
 // 提交餐馆申请
 async function submitApplication() {
-  if (!appForm.value.name.trim()) {
-    alert('请输入餐馆名称')
-    return
-  }
-  if (!appForm.value.location) {
-    alert('请选择位置')
-    return
+  // 验证
+  if (appForm.value.type === 'restaurant') {
+    if (!appForm.value.name.trim()) {
+      alert('请输入餐馆名称')
+      return
+    }
+    if (!appForm.value.location) {
+      alert('请选择位置')
+      return
+    }
+  } else if (appForm.value.type === 'feedback') {
+    if (!appForm.value.feedback_content.trim()) {
+      alert('请输入反馈内容')
+      return
+    }
   }
 
   appLoading.value = true
   try {
+    const insertData = {
+      user_id: user.value.id,
+      type: appForm.value.type
+    }
+
+    if (appForm.value.type === 'restaurant') {
+      insertData.name = appForm.value.name.trim()
+      insertData.tags = appForm.value.tags
+      insertData.location = appForm.value.location
+      insertData.description = appForm.value.description.trim()
+      insertData.detail = appForm.value.detail.trim()
+      insertData.price = appForm.value.price.trim()
+      insertData.distance = appForm.value.distance.trim()
+    } else {
+      insertData.feedback_content = appForm.value.feedback_content.trim()
+    }
+
     const { error } = await supabase
       .from('restaurant_applications')
-      .insert({
-        user_id: user.value.id,
-        name: appForm.value.name.trim(),
-        tags: appForm.value.tags,
-        location: appForm.value.location,
-        description: appForm.value.description.trim(),
-        detail: appForm.value.detail.trim(),
-        price: appForm.value.price.trim(),
-        distance: appForm.value.distance.trim()
-      })
+      .insert(insertData)
 
     if (error) throw error
 
@@ -1458,13 +1604,15 @@ async function submitApplication() {
 function closeAppModal() {
   showAppModal.value = false
   appForm.value = {
+    type: 'restaurant',
     name: '',
     tags: [],
     location: '',
     description: '',
     detail: '',
     price: '',
-    distance: ''
+    distance: '',
+    feedback_content: ''
   }
   appLoading.value = false
   appSuccess.value = false
@@ -4728,6 +4876,181 @@ function goToAuth() {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* 申请管理弹窗 */
+.apps-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.apps-content {
+  background: #FFF;
+  border-radius: 24px;
+  padding: 24px;
+  width: 100%;
+  max-width: 520px;
+  margin: 20px;
+  position: relative;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.apps-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.apps-icon {
+  font-size: 40px;
+}
+
+.apps-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  margin: 8px 0 0 0;
+}
+
+.apps-loading,
+.apps-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #888;
+}
+
+.apps-empty .empty-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.apps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-item {
+  padding: 16px;
+  background: #FAFAFA;
+  border-radius: 12px;
+  border-left: 4px solid #CCC;
+}
+
+.app-item.status-pending {
+  border-left-color: #E8A85D;
+}
+
+.app-item.status-approved {
+  border-left-color: #5B9E6B;
+}
+
+.app-item.status-rejected {
+  border-left-color: #E57373;
+}
+
+.app-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.app-item-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.app-item-status {
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.app-item-status.pending {
+  background: #FFF3E0;
+  color: #E65100;
+}
+
+.app-item-status.approved {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.app-item-status.rejected {
+  background: #FFEBEE;
+  color: #C62828;
+}
+
+.app-item-info {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.app-item-desc {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.app-item-date {
+  font-size: 12px;
+  color: #AAA;
+}
+
+.app-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.approve-btn,
+.reject-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.approve-btn {
+  background: linear-gradient(135deg, #5B9E6B, #4A8A5B);
+  color: #FFF;
+}
+
+.approve-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(91, 158, 107, 0.3);
+}
+
+.reject-btn {
+  background: linear-gradient(135deg, #E57373, #D55A5A);
+  color: #FFF;
+}
+
+.reject-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229, 115, 115, 0.3);
 }
 
 /* 补充餐馆按钮 */
