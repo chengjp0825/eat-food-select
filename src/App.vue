@@ -1,5 +1,12 @@
 <script setup>
-// 主应用组件
+import { onMounted } from 'vue'
+import { useAuth } from './composables/useAuth'
+
+const { initialize } = useAuth()
+
+onMounted(() => {
+  initialize()
+})
 </script>
 
 <template>
