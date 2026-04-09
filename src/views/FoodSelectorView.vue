@@ -35,16 +35,16 @@
             <div class="user-details">
               <span class="user-email">{{ profile?.username || userEmail }}</span>
               <div class="user-actions">
-                <button class="settings-btn" @click="showAppModal = true" title="补充餐馆">
-                  🏪
+                <button v-if="isAdmin" class="settings-btn" @click="$router.push('/admin')" title="管理后台">
+                  🛠️
                 </button>
-                <button v-if="isAdmin" class="settings-btn" @click="loadApplications(); showAppsModal = true" title="申请管理">
+                <button v-if="isAdmin" class="settings-btn" @click="loadApplications(); showAppsModal = true" title="近期申请">
                   📋
                 </button>
-                <button v-else class="settings-btn" @click="loadApplications(); showAppsModal = true" title="我的申请">
-                  📋
+                <button v-else class="settings-btn" @click="showAppModal = true" title="反馈建议">
+                  💬
                 </button>
-                <button class="settings-btn" @click="showSettingsModal = true" title="设置">
+                <button class="settings-btn" @click="openSettingsModal" title="设置">
                   ⚙️
                 </button>
                 <button class="logout-btn" @click="handleLogout">
@@ -138,12 +138,25 @@
       <!-- Card Grid Mode -->
       <div class="food-grid" v-if="viewMode === 'card'" :style="gridStyle">
         <div
-          v-for="food in filteredFoods"
+          v-for="(food, index) in filteredFoods"
           :key="food.id"
           class="food-card"
-          :class="{ active: selectedFood === food.id, 'card-highlight': highlightCard === food.id, 'card-dimmed': isSpinning && highlightCard !== food.id && highlightCard !== null }"
+          :class="{
+            active: selectedFood === food.id,
+            'card-highlight': highlightCard === food.id,
+            'card-dimmed': isSpinning && highlightCard !== food.id && highlightCard !== null,
+            'dragging': isAuthenticated && dragIndex === index,
+            'drag-over': isAuthenticated && dragOverIndex === index,
+            'draggable': isAuthenticated
+          }"
           :style="{ width: cardSize + 'px', animationDelay: getCardDelay(food.id) }"
           @click="showFoodDetail(food)"
+          :draggable="isAuthenticated"
+          @dragstart="isAuthenticated && onDragStart($event, index)"
+          @dragend="isAuthenticated && onDragEnd"
+          @dragover.prevent="isAuthenticated && onDragOver($event, index)"
+          @dragleave="isAuthenticated && onDragLeave"
+          @drop="isAuthenticated && onDrop($event, index)"
         >
           <div class="card-header">
             <h3 class="food-title">{{ food.name }}</h3>
@@ -201,27 +214,23 @@
 
       <!-- Wheel Mode -->
       <div class="wheel-mode" v-if="viewMode === 'wheel'">
-        <div class="wheel-container">
+        <div class="wheel-container" :class="{ spinning: isSpinning }">
           <div class="wheel" :class="{ spinning: isSpinning }" :style="{ transform: `rotate(${wheelRotation}deg)` }">
             <div
               v-for="(food, index) in filteredFoods"
               :key="food.id"
               class="wheel-segment"
-              :style="{
-                transform: `rotate(${index * segmentAngle}deg)`,
-                opacity: food.id === currentHighlight ? 1 : 0.5
+              :style="{ transform: `rotate(${index * segmentAngle}deg)` }"
+              :class="{
+                highlight: food.id === currentHighlight && !isSpinning
               }"
-              :class="{ highlight: food.id === currentHighlight }"
             >
               <div class="segment-content">
                 {{ food.name }}
               </div>
             </div>
           </div>
-          <div class="wheel-pointer">▼</div>
-        </div>
-        <div class="wheel-result-container" v-if="isSpinning">
-          <div class="current-spinning">{{ spinningFood?.name }}</div>
+          <div class="wheel-pointer" :class="{ spinning: isSpinning }">▼</div>
         </div>
       </div>
 
@@ -355,8 +364,23 @@
                 </span>
               </div>
             </div>
-            <!-- 添加新菜品按钮 -->
-            <div class="dish-card add-dish-card" @click="showAddDishInput = true">
+            <!-- 添加新菜品按钮/输入框 -->
+            <div v-if="showAddDishInput" class="dish-card add-dish-input-card">
+              <div class="add-dish-input-area">
+                <input
+                  v-model="newDishName"
+                  class="add-dish-input"
+                  placeholder="输入菜品名称，如：红烧肉"
+                  @keyup.enter="addNewDish"
+                  ref="dishInputRef"
+                />
+                <div class="add-dish-buttons">
+                  <button class="add-dish-confirm" @click="addNewDish">添加</button>
+                  <button class="add-dish-cancel" @click="cancelAddDish">取消</button>
+                </div>
+              </div>
+            </div>
+            <div v-else class="dish-card add-dish-card" @click="showAddDishInput = true">
               <div class="add-dish-content">
                 <span class="add-dish-icon">➕</span>
                 <span class="add-dish-text">添加菜品</span>
@@ -666,6 +690,76 @@
             <span class="stat-value">{{ favoritesCount }}</span>
             <span class="stat-label">收藏数</span>
           </div>
+          <div class="stat-box">
+            <span class="stat-value">{{ historyList.length }}</span>
+            <span class="stat-label">历史记录</span>
+          </div>
+        </div>
+
+        <!-- 历史记录区域 -->
+        <div class="history-section">
+          <div class="history-header" @click="showHistorySection = !showHistorySection">
+            <h3 class="history-title">
+              <i class="bi bi-clock-history" style="margin-right: 8px;"></i>
+              浏览历史记录
+            </h3>
+            <span class="history-toggle">
+              {{ showHistorySection ? '收起' : '展开' }}
+              <i :class="['bi', showHistorySection ? 'bi-chevron-up' : 'bi-chevron-down']"></i>
+            </span>
+          </div>
+
+          <div v-if="showHistorySection" class="history-content">
+            <div class="history-actions">
+              <button
+                class="btn-history-action"
+                @click="loadHistory"
+                :disabled="historyLoading"
+              >
+                <i class="bi bi-arrow-clockwise"></i>
+                刷新
+              </button>
+              <button
+                class="btn-history-action btn-danger"
+                @click="clearUserHistory"
+                :disabled="historyLoading || historyList.length === 0"
+              >
+                <i class="bi bi-trash"></i>
+                清空
+              </button>
+            </div>
+
+            <!-- 加载状态 -->
+            <div v-if="historyLoading" class="history-loading">
+              <div class="loading-spinner"></div>
+              <p>加载中...</p>
+            </div>
+
+            <!-- 历史记录列表 -->
+            <div v-else-if="historyList.length > 0" class="history-list">
+              <div
+                v-for="item in historyList"
+                :key="item.id"
+                class="history-item"
+                @click="openRestaurantDetail(item.restaurant_id)"
+              >
+                <div class="history-item-header">
+                  <span class="history-item-name">{{ item.restaurants?.name || '未知餐馆' }}</span>
+                  <span class="history-item-time">{{ formatDate(item.created_at) }}</span>
+                </div>
+                <div class="history-item-restaurant" v-if="item.restaurants?.description">
+                  {{ item.restaurants.description.substring(0, 60) }}{{ item.restaurants.description.length > 60 ? '...' : '' }}
+                </div>
+              </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-else class="history-empty">
+              <i class="bi bi-clock"></i>
+              <p>暂无浏览历史</p>
+              <p class="history-empty-hint">浏览餐馆后会在这里显示记录</p>
+            </div>
+          </div>
         </div>
 
         <div class="settings-form">
@@ -728,7 +822,7 @@
 
         <div class="apps-header">
           <div class="apps-icon">📋</div>
-          <h2 class="apps-title">{{ isAdmin ? '申请管理' : '我的申请' }}</h2>
+          <h2 class="apps-title">{{ isAdmin ? '近期申请' : '我的申请' }}</h2>
         </div>
 
         <!-- 加载状态 -->
@@ -783,86 +877,146 @@
         <!-- 成功提示 -->
         <div v-if="appSuccess" class="app-success">
           <div class="success-icon">✅</div>
-          <h2 class="success-title">申请已提交</h2>
-          <p class="success-text">餐馆：{{ appForm.name }}</p>
-          <p class="success-text">位置：{{ appForm.location }}</p>
-          <p class="success-hint">等待审核中...</p>
+          <h2 class="success-title">{{ appForm.type === 'restaurant' ? '餐馆申请已提交' : '反馈已提交' }}</h2>
+          <template v-if="appForm.type === 'restaurant'">
+            <p class="success-text">餐馆：{{ appForm.name }}</p>
+            <p class="success-text">位置：{{ appForm.location }}</p>
+          </template>
+          <template v-else>
+            <p class="success-text">反馈内容：{{ appForm.feedback_content.substring(0, 50) }}{{ appForm.feedback_content.length > 50 ? '...' : '' }}</p>
+          </template>
+          <p class="success-hint">{{ appForm.type === 'restaurant' ? '等待管理员审核...' : '感谢您的反馈！' }}</p>
           <button class="success-btn" @click="closeAppModal">知道了</button>
         </div>
 
         <!-- 申请表单 -->
         <div v-else>
           <div class="app-header">
-            <div class="app-icon">🏪</div>
-            <h2 class="app-title">补充餐馆</h2>
-            <p class="app-subtitle">添加周围遗漏的餐馆</p>
+            <div class="app-icon">💬</div>
+            <h2 class="app-title">我有话说</h2>
+            <p class="app-subtitle">申请餐馆或提出反馈</p>
           </div>
 
           <div class="app-form">
+            <!-- 类型选择 -->
             <div class="form-group">
-              <label class="form-label">餐馆名称 *</label>
-              <input
-                v-model="appForm.name"
-                type="text"
-                class="form-input"
-                placeholder="输入餐馆名称"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">位置 *</label>
-              <div class="location-tags">
-                <button
-                  v-for="loc in locations"
-                  :key="loc"
-                  class="location-tag"
-                  :class="{ active: appForm.location === loc }"
-                  @click="appForm.location = loc"
-                >{{ loc }}</button>
+              <label class="form-label">选择类型 *</label>
+              <div class="type-radio-group">
+                <div class="type-radio-item">
+                  <input
+                    type="radio"
+                    id="type-restaurant"
+                    v-model="appForm.type"
+                    value="restaurant"
+                    class="type-radio"
+                  />
+                  <label for="type-restaurant" class="type-radio-label">
+                    <span class="type-icon">🏪</span>
+                    <span class="type-text">申请餐馆</span>
+                    <span class="type-desc">补充遗漏的餐馆</span>
+                  </label>
+                </div>
+                <div class="type-radio-item">
+                  <input
+                    type="radio"
+                    id="type-feedback"
+                    v-model="appForm.type"
+                    value="feedback"
+                    class="type-radio"
+                  />
+                  <label for="type-feedback" class="type-radio-label">
+                    <span class="type-icon">💡</span>
+                    <span class="type-text">反馈意见</span>
+                    <span class="type-desc">提出建议或问题</span>
+                  </label>
+                </div>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">类型</label>
-              <div class="type-tags">
-                <button
-                  v-for="cat in categories"
-                  :key="cat"
-                  class="type-tag"
-                  :class="{ active: appForm.tags.includes(cat) }"
-                  @click="toggleAppTag(cat)"
-                >{{ cat }}</button>
+            <!-- 申请餐馆表单 -->
+            <div v-if="appForm.type === 'restaurant'">
+              <div class="form-group">
+                <label class="form-label">餐馆名称 *</label>
+                <input
+                  v-model="appForm.name"
+                  type="text"
+                  class="form-input"
+                  placeholder="输入餐馆名称"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">位置 *</label>
+                <div class="location-tags">
+                  <button
+                    v-for="loc in locations"
+                    :key="loc"
+                    type="button"
+                    class="location-tag"
+                    :class="{ active: appForm.location === loc }"
+                    @click="appForm.location = loc"
+                  >{{ loc }}</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">类型</label>
+                <div class="type-tags">
+                  <button
+                    v-for="cat in categories"
+                    :key="cat"
+                    type="button"
+                    class="type-tag"
+                    :class="{ active: appForm.tags.includes(cat) }"
+                    @click="toggleAppTag(cat)"
+                  >{{ cat }}</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">人均</label>
+                <input
+                  v-model="appForm.price"
+                  type="text"
+                  class="form-input"
+                  placeholder="如：¥15"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">距离</label>
+                <input
+                  v-model="appForm.distance"
+                  type="text"
+                  class="form-input"
+                  placeholder="如：5分钟"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">简介</label>
+                <textarea
+                  v-model="appForm.description"
+                  class="form-textarea"
+                  placeholder="一句话介绍"
+                  rows="2"
+                ></textarea>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">人均</label>
-              <input
-                v-model="appForm.price"
-                type="text"
-                class="form-input"
-                placeholder="如：¥15"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">距离</label>
-              <input
-                v-model="appForm.distance"
-                type="text"
-                class="form-input"
-                placeholder="如：5分钟"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">简介</label>
-              <textarea
-                v-model="appForm.description"
-                class="form-textarea"
-                placeholder="一句话介绍"
-                rows="2"
-              ></textarea>
+            <!-- 反馈意见表单 -->
+            <div v-else>
+              <div class="form-group">
+                <label class="form-label">反馈内容 *</label>
+                <textarea
+                  v-model="appForm.feedback_content"
+                  class="form-textarea feedback-textarea"
+                  placeholder="请输入您的反馈、建议或问题..."
+                  rows="6"
+                  required
+                ></textarea>
+              </div>
             </div>
           </div>
 
@@ -883,10 +1037,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { supabase } from '../lib/supabase'
-import { fetchRestaurants, addFavorite, removeFavorite, isFavorite, addHistory, favoritesList } from '../composables/useData'
+import { fetchRestaurants, addFavorite, removeFavorite, isFavorite, addHistory, favoritesList, historyList, fetchHistory, clearHistory } from '../composables/useData'
 import {
   fetchUserRatings,
   fetchRestaurantAvgRating,
@@ -916,11 +1070,15 @@ const detailFood = ref(null)
 const highlightCard = ref(null)
 const cardSize = ref(280) // 小220 中280 大340
 
+// 拖拽排序相关
+const dragIndex = ref(null)
+const dragOverIndex = ref(null)
+const foodOrder = ref([]) // 存储用户自定义排序
+
 // 跑马灯相关
 const isSpinning = ref(false)
 const wheelRotation = ref(0)
 const currentHighlight = ref(null)
-const spinningFood = ref(null)
 const segmentAngle = ref(0)
 const showWinnerModal = ref(false)
 const winnerFood = ref(null)
@@ -981,6 +1139,10 @@ const usernameChangeBlocked = computed(() => {
 // 收藏数
 const favoritesCount = computed(() => favoritesList.value?.length || 0)
 
+// 历史记录相关状态
+const showHistorySection = ref(false)
+const historyLoading = ref(false)
+
 // 餐馆申请弹窗状态
 const showAppModal = ref(false)
 const appForm = ref({
@@ -1001,6 +1163,7 @@ const appSuccess = ref(false)
 const showAppsModal = ref(false)
 const applications = ref([])
 const appsLoading = ref(false)
+const applicationsSubscription = ref(null)
 
 // 加载所有申请（管理员）或我的申请（普通用户）
 async function loadApplications() {
@@ -1021,6 +1184,40 @@ async function loadApplications() {
   }
 }
 
+// 设置申请表的实时订阅
+function setupApplicationsSubscription() {
+  // 如果已有订阅，先取消
+  if (applicationsSubscription.value) {
+    supabase.removeChannel(applicationsSubscription.value)
+  }
+
+  // 创建新订阅
+  applicationsSubscription.value = supabase
+    .channel('restaurant_applications_changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',  // INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'restaurant_applications'
+      },
+      async (payload) => {
+        console.log('Application change detected:', payload)
+        // 重新加载申请数据
+        await loadApplications()
+      }
+    )
+    .subscribe()
+}
+
+// 取消申请订阅
+function cleanupApplicationsSubscription() {
+  if (applicationsSubscription.value) {
+    supabase.removeChannel(applicationsSubscription.value)
+    applicationsSubscription.value = null
+  }
+}
+
 // 处理申请（批准或拒绝）
 async function handleApplication(appId, status) {
   const app = applications.value.find(a => a.id === appId)
@@ -1031,33 +1228,66 @@ async function handleApplication(appId, status) {
   }
 
   try {
-    const { error } = await supabase
+    // 如果批准，先检查重复和插入餐馆
+    if (status === 'approved') {
+      // 检查是否已存在相同名称的餐馆（针对restaurant类型）
+      if (app.type === 'restaurant' && app.name) {
+        const { data: existingRestaurants } = await supabase
+          .from('restaurants')
+          .select('id')
+          .eq('name', app.name)
+          .limit(1)
+
+        if (existingRestaurants && existingRestaurants.length > 0) {
+          alert(`餐馆 "${app.name}" 已存在，请检查重复`)
+          return
+        }
+      }
+
+      // 如果是餐馆申请，添加到餐馆列表
+      if (app.type === 'restaurant') {
+        const { error: insertError } = await supabase.from('restaurants').insert({
+          name: app.name,
+          tags: app.tags,
+          location: app.location,
+          description: app.description,
+          detail: app.detail || '',
+          price: app.price,
+          distance: app.distance,
+          rating_label: 'npc',
+          rating_class: 'npc',
+          features: []  // 默认空数组
+        })
+
+        if (insertError) throw insertError
+      }
+    }
+
+    // 更新申请状态（仅在以上操作成功后）
+    const { data: updatedData, error } = await supabase
       .from('restaurant_applications')
       .update({ status })
       .eq('id', appId)
+      .eq('status', 'pending')  // 确保只更新待处理状态
+      .select()
 
     if (error) throw error
-
-    // 如果批准，添加到餐厅列表
-    if (status === 'approved') {
-      await supabase.from('restaurants').insert({
-        name: app.name,
-        tags: app.tags,
-        location: app.location,
-        description: app.description,
-        detail: app.detail,
-        price: app.price,
-        distance: app.distance,
-        rating_label: 'npc',
-        rating_class: 'npc'
-      })
+    if (!updatedData || updatedData.length === 0) {
+      // 没有行被更新，可能是状态已改变或其他原因
+      alert('更新失败，请刷新后重试')
+      return
     }
 
-    // 刷新列表和数据
+    // 立即更新本地状态以提供即时反馈
+    const index = applications.value.findIndex(a => a.id === appId)
+    if (index >= 0) {
+      applications.value[index].status = status
+    }
+
+    // 刷新列表和数据（确保与服务器同步）
     await loadApplications()
-    if (!isAdmin.value) {
-      await loadRestaurants() // 刷新餐厅列表
-    }
+    // 所有人都刷新餐厅列表
+    await loadRestaurants()
     alert(status === 'approved' ? '已批准' : '已驳回')
   } catch (error) {
     console.error('Error handling application:', error)
@@ -1201,26 +1431,111 @@ async function loadAllRestaurantRatings() {
 // 页面加载时获取数据
 onMounted(() => {
   loadRestaurants()
-  // 如果用户已登录，加载其评分数据
+  loadFoodOrder() // 加载用户的卡片排序
+
+  // 如果用户已登录，加载其评分数据并设置申请订阅
   if (isAuthenticated.value) {
     fetchUserRatings()
+    setupApplicationsSubscription()
   }
+
+  // 监听 admin 页面数据更新通知
+  window.addEventListener('storage', handleStorageChange)
+  // 监听同页面 sessionStorage 变化
+  window.addEventListener('restaurantDataUpdated', () => loadRestaurants())
+})
+
+// localStorage 键名
+const FOOD_ORDER_KEY = 'food_order_' // 后面拼接用户ID
+
+// 保存排序到 localStorage
+function saveFoodOrder(order) {
+  const key = FOOD_ORDER_KEY + (profile.value?.id || 'guest')
+  localStorage.setItem(key, JSON.stringify(order))
+}
+
+// 从 localStorage 加载排序
+function loadFoodOrder() {
+  const key = FOOD_ORDER_KEY + (profile.value?.id || 'guest')
+  const saved = localStorage.getItem(key)
+  if (saved) {
+    try {
+      foodOrder.value = JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse food order:', e)
+      foodOrder.value = []
+    }
+  }
+}
+
+// 处理 sessionStorage 变化
+function handleStorageChange(e) {
+  if (e.key === 'restaurant_data_updated') {
+    loadRestaurants()
+  }
+}
+
+onUnmounted(() => {
+  // 清理申请订阅
+  cleanupApplicationsSubscription()
+  // 移除 storage 监听
+  window.removeEventListener('storage', handleStorageChange)
 })
 
 // 监听登录状态变化，加载评分数据
 watch(isAuthenticated, (newVal) => {
   if (newVal) {
     fetchUserRatings()
+    // 用户登录，设置申请订阅
+    setupApplicationsSubscription()
+  } else {
+    // 用户登出，清理申请订阅
+    cleanupApplicationsSubscription()
+  }
+})
+
+// 监听用户资料变化，重新加载对应用户的排序
+watch(profile, () => {
+  loadFoodOrder()
+})
+
+// 监听申请模态框状态，加载数据
+watch(showAppsModal, (newVal) => {
+  if (newVal) {
+    // 模态框打开，加载申请数据
+    loadApplications()
+  }
+})
+
+// 监听设置模态框状态，加载历史记录
+watch(showSettingsModal, (newVal) => {
+  if (newVal && isAuthenticated.value) {
+    // 模态框打开，加载历史记录
+    loadHistory()
+    // 重置历史记录展开状态
+    showHistorySection.value = false
   }
 })
 
 // 筛选后的食物（多选：空数组=全部选中）
 const filteredFoods = computed(() => {
-  return foods.value.filter(food => {
+  const filtered = foods.value.filter(food => {
     const locationMatch = selectedLocations.value.length === 0 || selectedLocations.value.includes(food.location)
     const categoryMatch = selectedCategories.value.length === 0 || food.tags.some(tag => selectedCategories.value.includes(tag))
     return locationMatch && categoryMatch
   })
+
+  // 应用自定义排序
+  if (foodOrder.value.length > 0) {
+    const orderMap = new Map(foodOrder.value.map((id, idx) => [id, idx]))
+    return [...filtered].sort((a, b) => {
+      const orderA = orderMap.get(a.id) ?? Infinity
+      const orderB = orderMap.get(b.id) ?? Infinity
+      return orderA - orderB
+    })
+  }
+
+  return filtered
 })
 
 // 网格布局样式
@@ -1242,7 +1557,6 @@ watch([selectedLocations, selectedCategories], () => {
   // 转盘模式下重置转盘状态
   if (viewMode.value === 'wheel') {
     currentHighlight.value = null
-    spinningFood.value = null
     wheelRotation.value = -90
   }
 })
@@ -1256,6 +1570,76 @@ function inDisplayTags(tags) {
 function getCardDelay(id) {
   const index = filteredFoods.value.findIndex(f => f.id === id)
   return `${index * 0.05}s`
+}
+
+// 拖拽排序处理
+function onDragStart(event, index) {
+  dragIndex.value = index
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', index)
+}
+
+function onDragEnd() {
+  dragIndex.value = null
+  dragOverIndex.value = null
+}
+
+function onDragOver(event, index) {
+  if (dragIndex.value !== null && dragIndex.value !== index) {
+    dragOverIndex.value = index
+  }
+}
+
+function onDragLeave() {
+  dragOverIndex.value = null
+}
+
+function onDrop(event, targetIndex) {
+  const sourceIndex = dragIndex.value
+  if (sourceIndex === null || sourceIndex === targetIndex) {
+    dragIndex.value = null
+    dragOverIndex.value = null
+    return
+  }
+
+  // 获取当前排序的ID列表（基于filteredFoods的顺序）
+  const currentOrder = [...foodOrder.value]
+  if (currentOrder.length === 0) {
+    // 如果没有自定义排序，使用当前filteredFoods的顺序初始化
+    filteredFoods.value.forEach(food => {
+      if (!currentOrder.includes(food.id)) {
+        currentOrder.push(food.id)
+      }
+    })
+  }
+
+  // sourceIndex 和 targetIndex 是基于 filteredFoods 的索引
+  // 找到对应的ID进行交换
+  const sourceId = filteredFoods.value[sourceIndex]?.id
+  const targetId = filteredFoods.value[targetIndex]?.id
+
+  if (!sourceId || !targetId) {
+    dragIndex.value = null
+    dragOverIndex.value = null
+    return
+  }
+
+  // 在currentOrder中找到这两个ID的位置并交换
+  const sourceOrderIdx = currentOrder.indexOf(sourceId)
+  const targetOrderIdx = currentOrder.indexOf(targetId)
+
+  if (sourceOrderIdx !== -1 && targetOrderIdx !== -1) {
+    // 交换位置
+    const temp = currentOrder[sourceOrderIdx]
+    currentOrder[sourceOrderIdx] = currentOrder[targetOrderIdx]
+    currentOrder[targetOrderIdx] = temp
+
+    foodOrder.value = currentOrder
+    saveFoodOrder(currentOrder) // 保存到 localStorage
+  }
+
+  dragIndex.value = null
+  dragOverIndex.value = null
 }
 
 // 切换位置多选
@@ -1348,8 +1732,8 @@ function startLottery() {
   }
 
   if (viewMode.value === 'card') {
-    // 卡片模式跑马灯动画
     isSpinning.value = true
+    // 卡片模式跑马灯动画
     const totalSegments = targetFoods.length
     // 随机目标位置
     let targetIndex = Math.floor(Math.random() * totalSegments)
@@ -1358,7 +1742,8 @@ function startLottery() {
     const totalSteps = spins * totalSegments + targetIndex
 
     let step = 0
-    let speed = 50
+    // 起始速度快，逐渐减速
+    let speed = 15
 
     const animate = () => {
       const currentIndex = step % totalSegments
@@ -1367,11 +1752,17 @@ function startLottery() {
       step++
 
       if (step < totalSteps) {
-        // 逐渐减速
-        if (step > spins * totalSegments) {
-          speed += 20
-        } else if (speed < 100) {
-          speed += 8
+        // 逐渐减速：快 → 慢
+        const remaining = totalSteps - step
+        if (remaining <= totalSegments) {
+          // 最后阶段：减速明显
+          speed = Math.min(speed + 30, 300)
+        } else if (step > spins * totalSegments) {
+          // 中后段：中等减速
+          speed = Math.min(speed + 12, 120)
+        } else {
+          // 前段：快速加速到峰值后保持
+          speed = Math.min(speed + 3, 80)
         }
         setTimeout(animate, speed)
       } else {
@@ -1382,54 +1773,51 @@ function startLottery() {
           isSpinning.value = false
           showWinnerModal.value = true
           winnerFood.value = finalFood
-        }, 150)
+        }, 200)
       }
     }
 
     animate()
   } else {
-    // 转盘模式跑马灯 - 优化动画效果
+    // 转盘模式跑马灯
     isSpinning.value = true
     const totalSegments = targetFoods.length
     // 随机目标位置（索引）
     let targetIndex = Math.floor(Math.random() * totalSegments)
+    // 每个扇区的角度（本地计算，避免 segmentAngle 未更新的问题）
+    const segAngle = 360 / totalSegments
     // 计算需要旋转的角度：多转几圈 + 目标位置对应的角度
-    // 逆时针旋转 targetIndex * segmentAngle 度，可以让 targetIndex 对应的选项转到指针下方
+    // 逆时针旋转，让 targetIndex 对应的选项转到指针下方
     const spins = 5
-    const totalRotation = spins * 360 + targetIndex * segmentAngle.value
+    const totalRotation = spins * 360 + targetIndex * segAngle
 
     let startTime = null
-    const duration = 4000 // 总时长4秒
-    let lastIndex = 0
+    const duration = 4000 // 4秒，干脆利落
 
     const animateWheel = (timestamp) => {
       if (!startTime) startTime = timestamp
       const elapsed = timestamp - startTime
       const progress = Math.min(elapsed / duration, 1)
 
-      // 使用 easeOut 减速曲线
-      const easeProgress = 1 - Math.pow(1 - progress, 3)
+      // 减速曲线：前75%快速 → 后25%急刹停
+      let easeProgress
+      if (progress < 0.75) {
+        // 前75%：cubic ease-out
+        easeProgress = 1 - Math.pow(1 - progress / 0.75, 3) * 0.75
+      } else {
+        // 后25%：急刹到零速度
+        const tailProgress = (progress - 0.75) / 0.25
+        easeProgress = 0.75 + (1 - Math.pow(1 - tailProgress, 2)) * 0.25
+      }
+      easeProgress = Math.min(easeProgress, 1)
 
-      // 计算当前旋转角度（逆时针）
       const currentRotation = totalRotation * easeProgress
       wheelRotation.value = -currentRotation - 90
-
-      // 计算当前高亮的选项
-      // 逆时针旋转 currentRotation 度后，原来的索引位置会移动
-      const currentIndex = Math.floor((currentRotation / segmentAngle.value)) % totalSegments
-      // 实际上，指针下应该是 (totalSegments - currentIndex) % totalSegments
-      const highlightIndex = (totalSegments - (currentIndex % totalSegments)) % totalSegments
-
-      if (highlightIndex !== lastIndex) {
-        lastIndex = highlightIndex
-        currentHighlight.value = targetFoods[highlightIndex].id
-        spinningFood.value = targetFoods[highlightIndex]
-      }
 
       if (progress < 1) {
         spinInterval = requestAnimationFrame(animateWheel)
       } else {
-        // 动画结束，目标选项应该在指针下方
+        // 动画结束，显示结果
         isSpinning.value = false
         selectedFood.value = targetFoods[targetIndex].id
         currentHighlight.value = targetFoods[targetIndex].id
@@ -1461,7 +1849,6 @@ function resetData() {
   detailFood.value = null
   isSpinning.value = false
   currentHighlight.value = null
-  spinningFood.value = null
   highlightCard.value = null
   showWinnerModal.value = false
   winnerFood.value = null
@@ -1549,6 +1936,12 @@ function toggleAppTag(tag) {
 
 // 提交餐馆申请
 async function submitApplication() {
+  // 检查登录状态
+  if (!user.value || !user.value.id) {
+    alert('请先登录')
+    return
+  }
+
   // 验证
   if (appForm.value.type === 'restaurant') {
     if (!appForm.value.name.trim()) {
@@ -1594,7 +1987,8 @@ async function submitApplication() {
     appSuccess.value = true
   } catch (error) {
     console.error('Error submitting application:', error)
-    alert('提交失败，请重试')
+    console.error('Error details:', error.message, error.code, error.details)
+    alert('提交失败：' + (error.message || '请重试'))
   } finally {
     appLoading.value = false
   }
@@ -1616,6 +2010,38 @@ function closeAppModal() {
   }
   appLoading.value = false
   appSuccess.value = false
+}
+
+// 加载历史记录
+async function loadHistory() {
+  if (!isAuthenticated.value) return
+
+  historyLoading.value = true
+  try {
+    await fetchHistory()
+  } catch (error) {
+    console.error('Error loading history:', error)
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+// 清空历史记录
+async function clearUserHistory() {
+  if (!isAuthenticated.value || !confirm('确定要清空所有历史记录吗？此操作不可撤销。')) {
+    return
+  }
+
+  historyLoading.value = true
+  try {
+    await clearHistory()
+    alert('历史记录已清空')
+  } catch (error) {
+    console.error('Error clearing history:', error)
+    alert('清空历史记录失败')
+  } finally {
+    historyLoading.value = false
+  }
 }
 
 // 保存设置
@@ -1655,6 +2081,19 @@ async function saveSettings() {
     alert('设置保存失败')
   } finally {
     settingsLoading.value = false
+  }
+}
+
+// 打开餐馆详情
+function openRestaurantDetail(restaurantId) {
+  const restaurant = restaurants.value.find(r => r.id === restaurantId)
+  if (restaurant) {
+    detailFood.value = restaurant
+    showDetailModal.value = true
+    // 记录浏览历史
+    recordHistory(restaurantId)
+  } else {
+    alert('未找到该餐馆信息')
   }
 }
 
@@ -1735,7 +2174,7 @@ function goToRateDish() {
 }
 
 // 添加新菜品
-function addNewDish() {
+async function addNewDish() {
   const dishName = newDishName.value.trim()
   if (!dishName) {
     alert('请输入菜品名称')
@@ -1746,13 +2185,27 @@ function addNewDish() {
     alert('该菜品已存在')
     return
   }
-  // 添加到列表并打开评分弹窗
+
+  // 先添加到本地列表
   restaurantDishes.value.push(dishName)
   dishRatings.value[dishName] = null
   newDishName.value = ''
   showAddDishInput.value = false
-  // 打开该菜品的评分弹窗
-  openDishRatingModal(detailFood.value, dishName)
+
+  try {
+    // 创建默认评分（3分），确保菜品保存到数据库
+    await addOrUpdateRating(detailFood.value.id, 3, '', dishName)
+
+    // 重新加载菜品列表以获取最新数据
+    await loadRestaurantDishes(detailFood.value.id)
+
+    // 打开该菜品的评分弹窗让用户可以修改
+    openDishRatingModal(detailFood.value, dishName)
+  } catch (error) {
+    console.error('Error creating default rating for dish:', error)
+    // 如果出错，仍然打开评分弹窗
+    openDishRatingModal(detailFood.value, dishName)
+  }
 }
 
 // 取消添加菜品
@@ -2347,6 +2800,29 @@ function goToAuth() {
   border-color: rgba(255, 115, 84, 0.2);
 }
 
+/* 拖拽状态 */
+.food-card.draggable {
+  cursor: grab;
+}
+
+.food-card.draggable:active {
+  cursor: grabbing;
+}
+
+.food-card.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  cursor: grabbing;
+  z-index: 1000;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.food-card.drag-over {
+  border: 2px dashed #FF7354;
+  background-color: rgba(255, 115, 84, 0.05);
+  transform: scale(1.02);
+}
+
 @keyframes cardEnter {
   from {
     opacity: 0;
@@ -2371,9 +2847,17 @@ function goToAuth() {
 
 .food-card.card-highlight {
   background-color: #FFF8E7 !important;
-  transform: scale(1.05);
-  box-shadow: 0 8px 28px rgba(255, 217, 61, 0.4);
-  border-color: #FFD93D;
+  transform: scale(1.12) translateY(-8px) !important;
+  box-shadow: 0 0 0 3px #FFD93D, 0 16px 40px rgba(255, 217, 61, 0.5) !important;
+  border-color: #FFD93D !important;
+  z-index: 10;
+  animation: cardMarqueeGlow 0.2s ease-in-out;
+}
+
+@keyframes cardMarqueeGlow {
+  0% { box-shadow: 0 0 0 0px #FFD93D, 0 0 20px rgba(255, 217, 61, 0.2); }
+  50% { box-shadow: 0 0 0 5px #FFD93D, 0 0 30px rgba(255, 217, 61, 0.6); }
+  100% { box-shadow: 0 0 0 3px #FFD93D, 0 16px 40px rgba(255, 217, 61, 0.5); }
 }
 
 .food-card.card-highlight::before {
@@ -2391,9 +2875,16 @@ function goToAuth() {
 }
 
 .food-card.card-dimmed {
-  opacity: 0.3 !important;
-  transform: scale(0.9) !important;
-  filter: grayscale(50%);
+  opacity: 0.15 !important;
+  transform: scale(0.85) !important;
+  filter: grayscale(100%) !important;
+  transition: opacity 0.08s ease, transform 0.08s ease, filter 0.08s ease !important;
+}
+
+/* 跑马灯期间所有卡片的快速过渡 */
+.food-grid:has(.card-highlight) .food-card,
+.food-grid:has(.card-dimmed) .food-card {
+  transition: opacity 0.1s ease, transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease !important;
 }
 
 @keyframes cardPulse {
@@ -2656,6 +3147,10 @@ function goToAuth() {
   height: 380px;
 }
 
+.wheel-container.spinning .wheel {
+  filter: drop-shadow(0 0 16px rgba(255, 115, 84, 0.25));
+}
+
 .wheel {
   width: 100%;
   height: 100%;
@@ -2682,19 +3177,29 @@ function goToAuth() {
 
 .wheel-pointer {
   position: absolute;
-  top: -16px;
+  top: -20px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 36px;
+  font-size: 40px;
   color: #FF7354;
   z-index: 10;
-  filter: drop-shadow(0 3px 6px rgba(255, 115, 84, 0.5));
-  animation: pointerBounce 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(255, 115, 84, 0.6));
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.wheel-pointer.spinning {
+  animation: pointerBounce 0.6s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(255, 115, 84, 0.6)) drop-shadow(0 0 12px rgba(255, 115, 84, 0.4));
 }
 
 @keyframes pointerBounce {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(-6px); }
+  0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
+  50% { transform: translateX(-50%) translateY(-8px) scale(1.1); }
+}
+
+/* 转盘旋转中容器发光 */
+.wheel-container.spinning {
+  filter: drop-shadow(0 0 20px rgba(255, 115, 84, 0.3));
 }
 
 .wheel-segment {
@@ -2704,18 +3209,20 @@ function goToAuth() {
   top: 50%;
   left: 50%;
   transform-origin: left center;
-  transition: opacity 0.1s linear;
-  background: linear-gradient(90deg, rgba(255, 115, 84, 0.1), rgba(255, 115, 84, 0.3));
+  transition: opacity 0.15s ease;
+  background: linear-gradient(90deg, rgba(255, 115, 84, 0.05), rgba(255, 115, 84, 0.15));
 }
 
 .wheel-segment.highlight {
   height: 3px;
-  background: linear-gradient(90deg, rgba(255, 115, 84, 0.3), #FF7354);
+  background: linear-gradient(90deg, rgba(255, 115, 84, 0.4), #FF7354);
+  filter: drop-shadow(0 0 6px rgba(255, 115, 84, 0.6));
+  transition: opacity 0.1s ease, height 0.15s ease, filter 0.15s ease, background 0.15s ease;
 }
 
 .segment-content {
   position: absolute;
-  right: 24px;
+  right: 18px;
   top: 50%;
   transform: translateY(-50%);
   white-space: nowrap;
@@ -2725,29 +3232,45 @@ function goToAuth() {
   border-radius: 16px;
   background: #FFF;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .wheel-segment.highlight .segment-content {
   background: linear-gradient(135deg, #FF7354, #FF8E6D);
   color: #FFF;
-  transform: translateY(-50%) scale(1.1);
-  box-shadow: 0 4px 16px rgba(255, 115, 84, 0.4);
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 4px 20px rgba(255, 115, 84, 0.5), 0 0 0 2px rgba(255, 115, 84, 0.2);
+  animation: segmentPulse 0.4s ease-in-out infinite;
+}
+
+@keyframes segmentPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(255, 115, 84, 0.5), 0 0 0 2px rgba(255, 115, 84, 0.2); }
+  50% { box-shadow: 0 4px 28px rgba(255, 115, 84, 0.7), 0 0 0 4px rgba(255, 115, 84, 0.3); }
 }
 
 .wheel-result-container {
   text-align: center;
-  padding: 16px 32px;
+  padding: 20px 40px;
   background: #FFF;
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 115, 84, 0.1);
+  min-width: 180px;
 }
 
 .current-spinning {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: bold;
   color: #FF7354;
+  text-shadow: 0 2px 8px rgba(255, 115, 84, 0.3);
+  animation: spinTextPop 0.3s ease-out;
+}
+
+@keyframes spinTextPop {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* Footer */
@@ -4683,6 +5206,183 @@ function goToAuth() {
   cursor: not-allowed;
 }
 
+/* 历史记录区域 */
+.history-section {
+  margin: 24px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #F9F9F9;
+  border: 1px solid #EEE;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  background: #FFF;
+  transition: background 0.3s ease;
+}
+
+.history-header:hover {
+  background: #F5F5F5;
+}
+
+.history-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.history-toggle {
+  font-size: 14px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-content {
+  padding: 0 20px;
+  background: #FFF;
+  border-top: 1px solid #EEE;
+}
+
+.history-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid #EEE;
+  margin-bottom: 16px;
+}
+
+.btn-history-action {
+  flex: 1;
+  padding: 10px 16px;
+  background: #F0F0F0;
+  border: 1px solid #DDD;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-history-action:hover:not(:disabled) {
+  background: #E8E8E8;
+  border-color: #CCC;
+}
+
+.btn-history-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-history-action.btn-danger {
+  background: #FFF0F0;
+  border-color: #FFCCCC;
+  color: #E53935;
+}
+
+.btn-history-action.btn-danger:hover:not(:disabled) {
+  background: #FFE6E6;
+  border-color: #FF9999;
+}
+
+.history-loading {
+  padding: 40px 0;
+  text-align: center;
+  color: #999;
+}
+
+.history-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #F0F0F0;
+  border-top: 3px solid #FF7354;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  animation: spin 1s linear infinite;
+}
+
+.history-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.history-item {
+  padding: 12px;
+  border-radius: 8px;
+  background: #FAFAFA;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #EEE;
+}
+
+.history-item:hover {
+  background: #F5F5F5;
+  border-color: #DDD;
+  transform: translateX(4px);
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.history-item-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.history-item-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.history-item-restaurant {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.history-empty {
+  padding: 40px 0;
+  text-align: center;
+  color: #999;
+}
+
+.history-empty i {
+  font-size: 40px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.history-empty-hint {
+  font-size: 13px;
+  color: #BBB;
+  margin-top: 8px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* 餐馆申请弹窗 */
 .app-modal {
   position: fixed;
@@ -4769,6 +5469,75 @@ function goToAuth() {
 
 .app-form .form-textarea {
   resize: vertical;
+}
+
+/* 类型选择样式 */
+.type-radio-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.type-radio-item {
+  position: relative;
+}
+
+.type-radio {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.type-radio-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 2px solid #EEE;
+  border-radius: 16px;
+  background: #FFF;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  height: 100%;
+}
+
+.type-radio:checked + .type-radio-label {
+  border-color: #FF7354;
+  background: linear-gradient(135deg, rgba(255, 115, 84, 0.05), rgba(255, 115, 84, 0.1));
+  box-shadow: 0 4px 12px rgba(255, 115, 84, 0.15);
+}
+
+.type-radio-label:hover {
+  border-color: #FF7354;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.type-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.type-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.type-desc {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
+}
+
+/* 反馈内容文本域 */
+.feedback-textarea {
+  min-height: 120px;
 }
 
 .location-tags,

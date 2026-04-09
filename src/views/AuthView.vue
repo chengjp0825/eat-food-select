@@ -116,8 +116,8 @@ const handleSubmit = async () => {
       // 注册成功后自动登录
       await signIn(email.value, password.value)
     }
-    // 跳转到选择页面
-    router.push('/food-selector')
+    // 跳转到首页（使用 push 而不是 go(-1) 以确保状态正确更新）
+    router.push('/')
   } catch (err) {
     console.error('Auth error:', err)
     // 显示更详细的错误信息

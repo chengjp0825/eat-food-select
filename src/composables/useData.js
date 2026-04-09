@@ -10,7 +10,7 @@ const favoritesLoading = ref(false)
 
 // 历史记录相关
 const history = ref([])
-const historyLoading = ref(false)
+// const historyLoading = ref(false)
 
 // 获取收藏列表
 export async function fetchFavorites() {
@@ -86,6 +86,10 @@ export function isFavorite(restaurantId) {
 
 // 导出收藏列表供外部使用
 export const favoritesList = computed(() => favorites.value)
+
+// 导出历史记录供外部使用
+export const historyList = computed(() => history.value)
+export const historyLoading = ref(false);
 
 // 获取历史记录
 export async function fetchHistory() {

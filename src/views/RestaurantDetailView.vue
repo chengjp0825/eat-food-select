@@ -1,352 +1,436 @@
 <template>
   <div class="restaurant-detail">
     <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top bg-primary">
-      <div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top">
+      <div class="container d-flex align-items-center justify-content-between">
         <router-link to="/" class="navbar-brand">
-          <i class="bi bi-arrow-left me-2"></i>
-          返回
+          <span class="brand-icon">🍽️</span>
+          <span class="brand-text">实验室美食分享</span>
         </router-link>
-        <span class="navbar-brand ms-auto">{{ restaurant.name }}</span>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="toggler-line"></span>
+          <span class="toggler-line"></span>
+          <span class="toggler-line"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav d-flex gap-3 align-items-center">
+            <li class="nav-item">
+              <router-link to="/" class="nav-link">首页</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link to="/food-selector" class="nav-link">今天吃什么</router-link>
+            </li>
+          </ul>
+        </div>
       </div>
     </nav>
 
-    <!-- 餐馆头部 -->
-    <div class="container mt-5 pt-5">
-      <div class="row">
-        <div class="col-md-8">
-          <div class="card border-0 shadow-sm">
-            <img :src="restaurant.image" class="card-img-top" :alt="restaurant.name" style="height: 300px; object-fit: cover;">
-            <div class="card-body">
-              <h2 class="card-title">{{ restaurant.name }}</h2>
-              <div class="d-flex align-items-center mb-3">
-                <div class="rating-display">
-                  <i class="bi bi-star-fill text-warning fs-4"></i>
-                  <span class="fs-4 ms-2">{{ restaurant.rating }}</span>
-                  <span class="text-muted ms-2">({{ restaurant.reviewCount }}条评价)</span>
-                </div>
-                <span class="badge ms-3 fs-6" :style="{ backgroundColor: categoryColor }">
-                  {{ restaurant.category }}
-                </span>
-              </div>
-              <p class="card-text">{{ restaurant.description }}</p>
-              <div class="row mt-4">
-                <div class="col-md-6">
-                  <p><i class="bi bi-geo-alt"></i> {{ restaurant.address }}</p>
-                  <p><i class="bi bi-clock"></i> {{ restaurant.hours }}</p>
-                </div>
-                <div class="col-md-6">
-                  <p><i class="bi bi-telephone"></i> {{ restaurant.phone }}</p>
-                  <p><i class="bi bi-cash"></i> 人均 {{ restaurant.avgPrice }}</p>
-                </div>
-              </div>
+    <!-- 主内容 - 居中显示 -->
+    <div class="main-content">
+      <div class="content-wrapper">
+        <div class="illustration-container">
+          <span class="main-emoji">🍳</span>
+          <span class="secondary-emoji emoji-1">🥢</span>
+          <span class="secondary-emoji emoji-2">🍜</span>
+          <span class="secondary-emoji emoji-3">🥡</span>
+        </div>
+
+        <h1 class="title">等一下嘛~</h1>
+
+        <div class="subtitle-wrapper">
+          <p class="subtitle">
+            这家餐厅的详细信息正在<span class="highlight">精心烹制</span>中
+          </p>
+          <p class="subtitle-second">
+            就像刚下单的外卖，总需要那么几分钟准备
+          </p>
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-track">
+            <div class="progress-fill"></div>
+            <div class="progress-particles">
+              <span class="particle" v-for="n in 5" :key="n"></span>
             </div>
           </div>
+          <p class="progress-text">
+            <span class="cooking-icon">🔥</span>
+            大厨正在颠勺，耐心等待...
+          </p>
+        </div>
 
-          <!-- 菜品评价 -->
-          <div class="mt-5">
-            <h3 class="mb-4">菜品点评</h3>
-            <div class="row row-cols-1 row-cols-md-2 g-4">
-              <div class="col" v-for="dish in restaurant.dishes" :key="dish.id">
-                <div class="card h-100 border-0 shadow-sm">
-                  <img :src="dish.image" class="card-img-top" :alt="dish.name" style="height: 150px; object-fit: cover;">
-                  <div class="card-body">
-                    <h5 class="card-title">{{ dish.name }}</h5>
-                    <p class="card-text text-muted">{{ dish.description }}</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <span class="text-warning">
-                          <i class="bi bi-star-fill"></i> {{ dish.rating }}
-                        </span>
-                        <span class="text-muted ms-2">({{ dish.reviewCount }}条评价)</span>
-                      </div>
-                      <span class="fs-5 text-primary">{{ dish.price }}</span>
-                    </div>
-                  </div>
-                  <div class="card-footer bg-transparent border-top-0">
-                    <button class="btn btn-primary w-100" @click="showReviewModal(dish)">
-                      <i class="bi bi-chat-text"></i> 写评价
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 用户评价 -->
-          <div class="mt-5">
-            <h3 class="mb-4">成员评价</h3>
-            <div class="card border-0 shadow-sm mb-3" v-for="review in restaurant.reviews" :key="review.id">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h6 class="card-title">{{ review.user }}</h6>
-                    <div class="text-warning mb-2">
-                      <i class="bi bi-star-fill" v-for="n in review.rating" :key="n"></i>
-                    </div>
-                  </div>
-                  <span class="text-muted small">{{ review.date }}</span>
-                </div>
-                <p class="card-text">{{ review.comment }}</p>
-                <div v-if="review.dish" class="mt-2">
-                  <span class="badge bg-light text-dark">评价菜品: {{ review.dish }}</span>
-                </div>
-              </div>
-            </div>
+        <div class="quotes-section">
+          <div class="quote-card">
+            <p class="quote-text">
+              "好吃的东西值得等待，<br>
+              就像实验室的咖啡，<br>
+              <strong>虽然总是凉的</strong>，<br>
+              但依然让人牵挂。"
+            </p>
           </div>
         </div>
 
-        <!-- 侧边栏 -->
-        <div class="col-md-4">
-          <!-- 地图 -->
-          <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
-              <h5 class="card-title"><i class="bi bi-map"></i> 位置</h5>
-              <div class="map-placeholder bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                <i class="bi bi-geo-alt fs-1 text-muted"></i>
-              </div>
-              <p class="mt-3">{{ restaurant.address }}</p>
-              <button class="btn btn-primary w-100">
-                <i class="bi bi-navigation"></i> 导航前往
-              </button>
-            </div>
-          </div>
-
-          <!-- 营业时间 -->
-          <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
-              <h5 class="card-title"><i class="bi bi-clock"></i> 营业时间</h5>
-              <ul class="list-unstyled">
-                <li v-for="(time, day) in restaurant.hoursDetail" :key="day" class="d-flex justify-content-between py-2 border-bottom">
-                  <span>{{ day }}</span>
-                  <span>{{ time }}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- 评分分布 -->
-          <div class="card border-0 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title"><i class="bi bi-bar-chart"></i> 评分分布</h5>
-              <div v-for="dist in restaurant.ratingDistribution" :key="dist.stars" class="mb-2">
-                <div class="d-flex align-items-center">
-                  <span class="me-2">{{ dist.stars }}星</span>
-                  <div class="progress flex-grow-1" style="height: 10px;">
-                    <div class="progress-bar" :style="{ width: dist.percentage + '%', backgroundColor: 'var(--primary)' }"></div>
-                  </div>
-                  <span class="ms-2">{{ dist.percentage }}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="action-section">
+          <router-link to="/food-selector" class="btn btn-primary btn-lg">
+            <span class="btn-icon">🎰</span>
+            先去转盘赌一把
+          </router-link>
+          <router-link to="/" class="btn btn-outline btn-lg">
+            溜回首页
+          </router-link>
         </div>
-      </div>
-    </div>
 
-    <!-- 评价模态框 -->
-    <div class="modal fade" id="reviewModal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header bg-primary text-light">
-            <h5 class="modal-title">评价菜品: {{ selectedDish?.name }}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">评分</label>
-              <div class="rating-input">
-                <i class="bi bi-star fs-3" v-for="n in 5" :key="n"
-                   :class="{ 'text-warning': n <= tempRating }"
-                   @click="tempRating = n"
-                   style="cursor: pointer;"></i>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">评价内容</label>
-              <textarea class="form-control" v-model="tempComment" rows="3" placeholder="分享你的用餐体验..."></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary" @click="submitReview">提交评价</button>
-          </div>
+        <div class="fun-facts">
+          <p class="fun-fact">
+            💡 tip: 选择困难时，就选红烧肉
+          </p>
         </div>
       </div>
     </div>
 
     <!-- 页脚 -->
-    <footer class="mt-5 py-4 bg-dark text-light">
+    <footer>
       <div class="container">
-        <p class="text-center mb-0">&copy; 2026 实验室内部使用</p>
+        <p class="footer-copyright">© 2026 实验室内部使用 · 美食值得等待</p>
       </div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { Modal } from 'bootstrap'
-
-const route = useRoute()
-
-// 餐馆数据
-const restaurant = ref({
-  id: parseInt(route.params.id),
-  name: '学苑食堂',
-  description: '校内最受欢迎的食堂，菜品丰富价格实惠',
-  rating: 4.5,
-  reviewCount: 128,
-  category: '食堂',
-  image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80',
-  address: '学校东区学生生活区1号楼',
-  hours: '06:30 - 21:00',
-  phone: '13800138000',
-  avgPrice: '¥15-25',
-  hoursDetail: {
-    '周一至周五': '06:30 - 21:00',
-    '周六': '07:00 - 20:30',
-    '周日': '07:00 - 20:30'
-  },
-  ratingDistribution: [
-    { stars: 5, percentage: 60 },
-    { stars: 4, percentage: 25 },
-    { stars: 3, percentage: 10 },
-    { stars: 2, percentage: 3 },
-    { stars: 1, percentage: 2 }
-  ],
-  dishes: [
-    {
-      id: 1,
-      name: '红烧肉',
-      description: '经典红烧肉，肥而不腻，入口即化',
-      rating: 4.8,
-      reviewCount: 45,
-      price: '¥12',
-      image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    },
-    {
-      id: 2,
-      name: '鱼香肉丝',
-      description: '酸甜适口，肉丝嫩滑',
-      rating: 4.6,
-      reviewCount: 38,
-      price: '¥10',
-      image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    },
-    {
-      id: 3,
-      name: '宫保鸡丁',
-      description: '麻辣鲜香，鸡肉鲜嫩',
-      rating: 4.7,
-      reviewCount: 42,
-      price: '¥11',
-      image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    },
-    {
-      id: 4,
-      name: '西红柿鸡蛋面',
-      description: '家常味道，营养丰富',
-      rating: 4.4,
-      reviewCount: 28,
-      price: '¥8',
-      image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    }
-  ],
-  reviews: [
-    {
-      id: 1,
-      user: '小明同学',
-      rating: 5,
-      comment: '红烧肉真的太好吃了，每次来必点！',
-      dish: '红烧肉',
-      date: '2026-03-28'
-    },
-    {
-      id: 2,
-      user: '美食家小李',
-      rating: 4,
-      comment: '性价比很高，适合学生党，就是饭点人有点多。',
-      dish: '鱼香肉丝',
-      date: '2026-03-25'
-    },
-    {
-      id: 3,
-      user: '吃货小张',
-      rating: 5,
-      comment: '宫保鸡丁麻辣味十足，非常下饭！',
-      dish: '宫保鸡丁',
-      date: '2026-03-20'
-    }
-  ]
-})
-
-// 计算分类颜色
-const categoryColor = computed(() => {
-  const colors = {
-    '食堂': 'var(--primary)',
-    '咖啡厅': '#6f4e37',
-    '中餐': 'var(--secondary)',
-    '西餐': '#2c3e50',
-    '甜品': '#e84393',
-    '烧烤': '#e67e22'
-  }
-  return colors[restaurant.value.category] || '#95a5a6'
-})
-
-// 评价相关
-const selectedDish = ref(null)
-const tempRating = ref(0)
-const tempComment = ref('')
-let reviewModal = null
+import { onMounted } from 'vue'
 
 onMounted(() => {
-  reviewModal = new Modal(document.getElementById('reviewModal'))
-})
-
-function showReviewModal(dish) {
-  selectedDish.value = dish
-  tempRating.value = 0
-  tempComment.value = ''
-  reviewModal.show()
-}
-
-function submitReview() {
-  if (tempRating.value === 0) {
-    alert('请选择评分')
-    return
-  }
-
-  restaurant.value.reviews.unshift({
-    id: restaurant.value.reviews.length + 1,
-    user: '当前用户',
-    rating: tempRating.value,
-    comment: tempComment.value,
-    dish: selectedDish.value?.name,
-    date: new Date().toISOString().split('T')[0]
+  // 确保页面滚动到顶部 - 多种方式确保生效
+  requestAnimationFrame(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant'
+    })
   })
-
-  reviewModal.hide()
-  alert('评价提交成功！')
-}
+})
 </script>
 
 <style scoped>
 .restaurant-detail {
-  background-color: var(--light-bg);
-  min-height: 100vh;
+  background-color: var(--color-bg-primary);
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(232, 93, 75, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 139, 117, 0.05) 0%, transparent 50%);
 }
-.map-placeholder {
-  border-radius: 8px;
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 70px var(--space-lg) var(--space-lg);
 }
-.rating-input .bi-star {
-  margin-right: 5px;
+
+.content-wrapper {
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
 }
-.card {
-  transition: transform 0.2s;
+
+/* 动画图标组 */
+.illustration-container {
+  position: relative;
+  width: 140px;
+  height: 100px;
+  margin: 0 auto var(--space-2xl);
 }
-.card:hover {
-  transform: translateY(-3px);
+
+.main-emoji {
+  font-size: 5rem;
+  display: block;
+  animation: bounce 1s ease-in-out infinite;
+  filter: drop-shadow(0 8px 16px rgba(232, 93, 75, 0.3));
+}
+
+.secondary-emoji {
+  position: absolute;
+  font-size: 1.5rem;
+  opacity: 0;
+  animation: floatAround 3s ease-in-out infinite;
+}
+
+.emoji-1 {
+  top: 0;
+  left: -10px;
+  animation-delay: 0s;
+}
+
+.emoji-2 {
+  top: 20px;
+  right: -15px;
+  animation-delay: 1s;
+}
+
+.emoji-3 {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 2s;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-10px) rotate(-5deg); }
+  75% { transform: translateY(-5px) rotate(5deg); }
+}
+
+@keyframes floatAround {
+  0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30px) scale(1.2); }
+}
+
+/* 标题 */
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-lg);
+  letter-spacing: -0.02em;
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.subtitle-wrapper {
+  margin-bottom: var(--space-2xl);
+  animation: fadeInUp 0.8s ease-out 0.1s forwards;
+  opacity: 0;
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  line-height: 1.8;
+  max-width: none;
+}
+
+.subtitle-second {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  max-width: none;
+}
+
+.highlight {
+  color: var(--color-accent-primary);
+  font-weight: 600;
+}
+
+/* 进度条 */
+.progress-section {
+  margin-bottom: var(--space-2xl);
+  animation: fadeInUp 0.8s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+.progress-track {
+  position: relative;
+  height: 12px;
+  background-color: var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+}
+
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg,
+    var(--color-accent-primary) 0%,
+    var(--color-accent-secondary) 50%,
+    var(--color-accent-primary) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.progress-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background-color: var(--color-accent-secondary);
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  animation: particleMove 2s ease-in-out infinite;
+}
+
+.particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+.particle:nth-child(2) { left: 30%; animation-delay: 0.3s; }
+.particle:nth-child(3) { left: 50%; animation-delay: 0.6s; }
+.particle:nth-child(4) { left: 70%; animation-delay: 0.9s; }
+.particle:nth-child(5) { left: 90%; animation-delay: 1.2s; }
+
+@keyframes particleMove {
+  0% { opacity: 0; transform: translateY(-50%) scale(0); }
+  50% { opacity: 1; transform: translateY(-50%) scale(1); }
+  100% { opacity: 0; transform: translateY(-50%) scale(0); }
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0;
+}
+
+.cooking-icon {
+  display: inline-block;
+  animation: flicker 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes flicker {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.2); }
+}
+
+/* 引用卡片 */
+.quotes-section {
+  margin-bottom: var(--space-2xl);
+  animation: fadeInUp 0.8s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+.quote-card {
+  position: relative;
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, var(--color-bg-accent) 0%, var(--color-bg-secondary) 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color-light);
+}
+
+.quote-card::before {
+  content: '"';
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  font-family: 'Playfair Display', serif;
+  font-size: 4rem;
+  color: var(--color-accent-primary);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-text {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+  margin-bottom: 0;
+  font-style: italic;
+  max-width: none;
+}
+
+.quote-text strong {
+  color: var(--color-accent-primary);
+  font-style: normal;
+}
+
+/* 按钮 */
+.action-section {
+  display: flex;
+  gap: var(--space-lg);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2xl);
+  animation: fadeInUp 0.8s ease-out 0.4s forwards;
+  opacity: 0;
+}
+
+.btn-lg {
+  padding: var(--space-md) var(--space-xl);
+  font-size: 1rem;
+}
+
+.btn-icon {
+  margin-right: var(--space-sm);
+}
+
+/* 趣味提示 */
+.fun-facts {
+  animation: fadeInUp 0.8s ease-out 0.5s forwards;
+  opacity: 0;
+}
+
+.fun-fact {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-color);
+  margin-bottom: 0;
+  max-width: none;
+}
+
+/* 页脚 */
+footer {
+  color: rgba(255, 255, 255, 0.9);
+  background-color: var(--color-text-primary);
+  padding: var(--space-2xl) 0;
+}
+
+.footer-copyright {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8125rem;
+  margin-bottom: 0;
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式 */
+@media (max-width: 480px) {
+  .title {
+    font-size: 2rem;
+  }
+
+  .main-emoji {
+    font-size: 4rem;
+  }
+
+  .action-section {
+    flex-direction: column;
+  }
+
+  .action-section .btn {
+    width: 100%;
+  }
+
+  .quote-text {
+    font-size: 0.9375rem;
+  }
 }
 </style>

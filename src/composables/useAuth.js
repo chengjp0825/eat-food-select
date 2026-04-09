@@ -96,7 +96,7 @@ export function useAuth() {
 
   // 监听认证状态变化
   const subscribeToAuth = (callback) => {
-    return supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       user.value = session?.user || null
       if (user.value) {
         fetchProfile()
@@ -105,6 +105,7 @@ export function useAuth() {
       }
       callback(event, session)
     })
+    return subscription.unsubscribe.bind(subscription)
   }
 
   // 计算属性

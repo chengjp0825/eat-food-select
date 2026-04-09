@@ -20,49 +20,124 @@
             <li class="nav-item">
               <router-link to="/food-selector" class="nav-link">今天吃什么</router-link>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">分享美食</a>
+            <li class="nav-item" v-if="isAdmin">
+              <router-link to="/admin" class="nav-link">管理后台</router-link>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="#">成员</a>
+              <router-link v-if="!isAuthenticated" to="/auth" class="nav-link nav-link-btn">登录</router-link>
+              <button v-else class="nav-link nav-link-btn" @click="handleSignOut">登出</button>
             </li>
           </ul>
         </div>
       </div>
     </nav>
 
+    <!-- 用户信息栏 -->
+    <div class="user-info-bar">
+      <div class="container">
+        <div class="user-info" v-if="isAuthenticated">
+          <div class="user-status-badge status-logged-in">
+            <span class="status-dot"></span>
+            已登录
+          </div>
+          <div class="user-avatar">
+            <span class="avatar-icon">👤</span>
+          </div>
+          <div class="user-details">
+            <span class="user-email">{{ profile?.username || userEmail }}</span>
+            <div class="user-actions">
+              <button v-if="isAdmin" class="settings-btn" @click="$router.push('/admin')" title="管理后台">
+                🛠️
+              </button>
+              <button class="logout-btn" @click="handleSignOut">
+                退出
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="user-info" v-else>
+          <div class="user-status-badge status-logged-out">
+            <span class="status-dot"></span>
+            未登录
+          </div>
+          <router-link to="/auth" class="login-link">
+            <span class="login-icon">🔑</span>
+            登录/注册
+          </router-link>
+        </div>
+      </div>
+    </div>
+
     <!-- 主内容 -->
     <div class="main-content">
       <!-- 欢迎区域 -->
-      <div class="hero-section">
+      <section class="hero-section">
         <div class="container">
           <div class="hero-content">
-            <h1 class="hero-title animate-fade-in-up">
-              探索美味<span class="text-accent">·</span>分享快乐
+            <div class="hero-badge animate-fade-in-up">
+              <span class="badge-icon">🧪</span>
+              <span>仅限实验室内部使用</span>
+            </div>
+            <h1 class="hero-title animate-fade-in-up" style="animation-delay: 0.1s;">
+              告别选择困难<br><span class="text-accent">让代码决定午餐</span>
             </h1>
-            <div class="decorative-line animate-fade-in-up" style="animation-delay: 0.1s;"></div>
             <p class="hero-description animate-fade-in-up" style="animation-delay: 0.2s;">
-              实验室成员的美食发现与分享平台
+              这是一个<span class="highlight">不知道中午吃什么</span>时的产物。<br>
+              用转盘赌命，靠骰子定胜负，让玄学指导我们的胃。<br>
+              <span class="vibe-tag">Built with vibe coding, 2026</span>
             </p>
+            <div class="hero-actions animate-fade-in-up" style="animation-delay: 0.3s;">
+              <router-link to="/food-selector" class="btn btn-primary btn-lg">
+                🎰 开始今天的豪赌
+              </router-link>
+              <router-link to="/auth" class="btn btn-outline btn-lg" v-if="!isAuthenticated">
+                加入组织
+              </router-link>
+            </div>
           </div>
 
-          <!-- 搜索栏 -->
-          <div class="search-container animate-fade-in-up" style="animation-delay: 0.3s;">
-            <div class="search-input-wrapper">
-              <span class="search-icon">🔍</span>
-              <input type="text" class="form-control search-input" placeholder="搜索餐馆、菜品或成员推荐...">
+          <div class="hero-stats animate-fade-in-up" style="animation-delay: 0.4s;">
+            <div class="stat-item">
+              <span class="stat-number">{{ restaurants.length }}</span>
+              <span class="stat-label">收录餐厅</span>
             </div>
-            <button class="btn btn-primary search-button">搜索</button>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-number">{{ totalRatings }}</span>
+              <span class="stat-label">次"踩雷"</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-number">{{ totalFavorites }}</span>
+              <span class="stat-label">次收藏</span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <!-- 关于平台 -->
+      <section class="about-section">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="section-title">这玩意儿能干啥</h2>
+            <p class="section-subtitle">不是什么正经系统，但能用</p>
+          </div>
+          <div class="about-grid">
+            <div class="about-card" v-for="(feature, index) in features" :key="index" :style="{ animationDelay: `${index * 0.1}s` }">
+              <div class="about-icon">{{ feature.icon }}</div>
+              <h3 class="about-title">{{ feature.title }}</h3>
+              <p class="about-text">{{ feature.description }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- 分类筛选 -->
-      <div class="category-section">
+      <section class="category-section">
         <div class="container">
-          <div class="category-header">
-            <h3 class="section-title">浏览分类</h3>
-            <div class="decorative-dots"></div>
+          <div class="section-header">
+            <h2 class="section-title">浏览餐厅</h2>
+            <p class="section-subtitle">按分类筛选你感兴趣的美食</p>
           </div>
           <div class="category-filters">
             <button
@@ -77,81 +152,106 @@
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- 餐馆列表 -->
-      <div class="restaurants-section">
+      <!-- 餐厅列表 -->
+      <section class="restaurants-section">
         <div class="container">
-          <div class="section-header">
-            <h2 class="section-title">成员推荐餐馆</h2>
-            <div class="decorative-line"></div>
+          <div v-if="loading" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
           </div>
-          <div class="restaurant-grid">
-            <div
-              v-for="(restaurant, index) in restaurants"
+          <div v-else-if="filteredRestaurants.length === 0" class="empty-state">
+            <div class="empty-icon">🍜</div>
+            <p>暂无餐厅，<router-link to="/restaurant/new">成为第一个分享者</router-link></p>
+          </div>
+          <div v-else class="restaurant-list">
+            <article
+              v-for="(restaurant, index) in filteredRestaurants"
               :key="restaurant.id"
               class="restaurant-card"
               :style="{ animationDelay: `${index * 0.08}s` }"
             >
-              <div class="card-image-wrapper">
-                <img :src="restaurant.image" :alt="restaurant.name" class="card-image">
-                <div class="card-overlay">
-                  <span class="category-badge">{{ restaurant.category }}</span>
-                </div>
-              </div>
-              <div class="card-content">
-                <h3 class="restaurant-name">{{ restaurant.name }}</h3>
-                <p class="restaurant-description">{{ restaurant.description }}</p>
-                <div class="restaurant-meta">
-                  <div class="rating">
-                    <span class="rating-star">⭐</span>
-                    <span class="rating-value">{{ restaurant.rating }}</span>
+              <div class="restaurant-main">
+                <div class="restaurant-header">
+                  <h3 class="restaurant-name">{{ restaurant.name }}</h3>
+                  <div class="restaurant-rating" v-if="restaurant.avg_rating">
+                    <span class="rating-stars">★</span>
+                    <span class="rating-value">{{ restaurant.avg_rating.toFixed(1) }}</span>
+                    <span class="rating-count">({{ restaurant.rating_count }}条)</span>
                   </div>
-                  <span class="review-count">{{ restaurant.reviewCount }} 条评价</span>
+                </div>
+                <p class="restaurant-description">{{ restaurant.description || '暂无描述' }}</p>
+                <div class="restaurant-tags" v-if="restaurant.tags && restaurant.tags.length">
+                  <span class="tag" v-for="tag in restaurant.tags" :key="tag">{{ tag }}</span>
                 </div>
               </div>
-              <div class="card-footer-content">
+              <div class="restaurant-meta">
+                <div class="meta-item" v-if="restaurant.location">
+                  <span class="meta-icon">📍</span>
+                  <span class="meta-text">{{ restaurant.location }}</span>
+                </div>
+                <div class="meta-item" v-if="restaurant.price">
+                  <span class="meta-icon">💰</span>
+                  <span class="meta-text">{{ restaurant.price }}</span>
+                </div>
+                <div class="meta-item" v-if="restaurant.distance">
+                  <span class="meta-icon">🚶</span>
+                  <span class="meta-text">{{ restaurant.distance }}</span>
+                </div>
+              </div>
+              <div class="restaurant-actions">
                 <router-link
                   :to="{ name: 'restaurant-detail', params: { id: restaurant.id } }"
-                  class="btn btn-outline card-link"
+                  class="btn btn-outline btn-sm"
                 >
                   查看详情
                 </router-link>
               </div>
-            </div>
+            </article>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- 特色菜品 -->
-      <div class="featured-section">
+      <!-- 平台说明 -->
+      <section class="info-section">
         <div class="container">
-          <div class="section-header">
-            <h2 class="section-title">成员推荐菜品</h2>
-            <div class="decorative-line"></div>
-          </div>
-          <div class="featured-grid">
-            <div
-              v-for="(dish, index) in featuredDishes"
-              :key="dish.id"
-              class="featured-card"
-              :style="{ animationDelay: `${index * 0.1}s` }"
-            >
-              <div class="featured-image-wrapper">
-                <img :src="dish.image" :alt="dish.name" class="featured-image">
+          <div class="info-grid">
+            <div class="info-content">
+              <h2 class="info-title">等等，你说这是用 AI 写的？</h2>
+              <p class="info-text">
+                是的，这个站的大部分代码是 AI 生成的。prompt 丢进去，代码吐出来。
+                所以如果有什么 bug，那一定是 AI 的问题，不是你的问题。
+                <br><br>
+                <span class="tech-stack">
+                  <span class="tech-tag">Vue 3</span>
+                  <span class="tech-tag">Supabase</span>
+                  <span class="tech-tag">Vite</span>
+                  <span class="tech-tag">Bootstrap</span>
+                </span>
+              </p>
+              <div class="info-actions">
+                <router-link to="/food-selector" class="btn btn-primary">
+                  🎰 我要去赌命了
+                </router-link>
+                <router-link to="/restaurant/new" class="btn btn-outline">
+                  我有餐厅要分享
+                </router-link>
               </div>
-              <div class="featured-content">
-                <h4 class="featured-name">{{ dish.name }}</h4>
-                <p class="featured-restaurant">{{ dish.restaurant }}</p>
-                <div class="featured-meta">
-                  <span class="featured-rating">⭐ {{ dish.rating }}</span>
-                  <span class="featured-price">{{ dish.price }}</span>
-                </div>
+            </div>
+            <div class="info-decoration">
+              <div class="code-block">
+                <div class="code-line"><span class="code-comment">// AI: 写一个美食分享网站</span></div>
+                <div class="code-line"><span class="code-keyword">const</span> site = {</div>
+                <div class="code-line">  name: <span class="code-string">'今天吃什么'</span>,</div>
+                <div class="code-line">  status: <span class="code-string">'能跑就行'</span>,</div>
+                <div class="code-line">  bugs: <span class="code-number">Infinity</span></div>
+                <div class="code-line">}</div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
     <!-- 页脚 -->
@@ -159,146 +259,123 @@
       <div class="container">
         <div class="footer-content">
           <div class="footer-section">
-            <h5>实验室美食分享</h5>
-            <p class="footer-description">实验室成员美食发现与分享平台</p>
+            <h5>🍽️ 今天吃什么</h5>
+            <p class="footer-description">一个用 AI 糊出来的选餐工具<br>如有雷同，那不是巧合</p>
           </div>
           <div class="footer-section">
-            <h5>实验室相关</h5>
+            <h5>快速链接</h5>
             <ul class="footer-links">
-              <li><a href="#">实验室主页</a></li>
-              <li><a href="#">项目文档</a></li>
-              <li><a href="#">成员通讯录</a></li>
+              <li><router-link to="/">首页</router-link></li>
+              <li><router-link to="/food-selector">今天吃什么</router-link></li>
+              <li><router-link to="/restaurant/new">分享美食</router-link></li>
             </ul>
           </div>
           <div class="footer-section">
-            <h5>联系方式</h5>
-            <div class="footer-social">
-              <a href="#" class="social-link">📧</a>
-              <a href="#" class="social-link">💻</a>
-              <a href="#" class="social-link">🔗</a>
-            </div>
+            <h5>关于</h5>
+            <p class="footer-description">2026 年某次不知道吃什么的中午<br>用 vibe coding 的方式诞生了</p>
           </div>
         </div>
-        <hr>
-        <p class="footer-copyright">&copy; 2026 实验室内部使用</p>
+        <hr class="footer-divider">
+        <p class="footer-copyright">© 2026 Built with vibe · 仅供娱乐 · 欢迎来踩</p>
       </div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useAuth } from '../composables/useAuth'
+import { fetchRestaurants } from '../composables/useData'
+
+const { initialize, isAuthenticated, isAdmin, signOut, subscribeToAuth, userEmail, profile } = useAuth()
+
+let unsubscribe = null
+
+const handleSignOut = async () => {
+  try {
+    await signOut()
+  } catch (error) {
+    console.error('Sign out error:', error)
+  }
+}
 
 // 分类数据
-const categories = ['全部', '食堂', '中餐', '西餐', '快餐', '小吃', '饮品', '甜品', '烧烤']
+const categories = ['全部', '食堂', '中餐', '西餐', '快餐', '小吃', '饮品', '甜品', '烧烤', '其他']
 const selectedCategory = ref('全部')
 
-// 餐馆数据
-const restaurants = ref([
-  {
-    id: 1,
-    name: '学苑食堂',
-    description: '校内最受欢迎的食堂，菜品丰富价格实惠',
-    rating: 4.5,
-    reviewCount: 128,
-    category: '食堂',
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  },
-  {
-    id: 2,
-    name: '咖啡时光',
-    description: '校园咖啡馆，提供精品咖啡和轻食',
-    rating: 4.2,
-    reviewCount: 56,
-    category: '咖啡厅',
-    image: 'https://images.unsplash.com/photo-1498804103079-a6351b050096?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  },
-  {
-    id: 3,
-    name: '川味小厨',
-    description: '正宗川菜，辣味十足',
-    rating: 4.7,
-    reviewCount: 89,
-    category: '中餐',
-    image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  },
-  {
-    id: 4,
-    name: '披萨先生',
-    description: '手工披萨，现点现做',
-    rating: 4.3,
-    reviewCount: 72,
-    category: '西餐',
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  },
-  {
-    id: 5,
-    name: '甜品工坊',
-    description: '各式甜品，甜蜜你的校园生活',
-    rating: 4.6,
-    reviewCount: 45,
-    category: '甜品',
-    image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  },
-  {
-    id: 6,
-    name: '烧烤部落',
-    description: '夜宵好去处，烧烤啤酒',
-    rating: 4.4,
-    reviewCount: 63,
-    category: '烧烤',
-    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  }
-])
+// 餐厅数据
+const restaurants = ref([])
+const loading = ref(true)
 
-// 特色菜品数据
-const featuredDishes = ref([
-  {
-    id: 1,
-    name: '红烧肉',
-    restaurant: '学苑食堂',
-    rating: 4.8,
-    price: '¥12',
-    image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  },
-  {
-    id: 2,
-    name: '拿铁咖啡',
-    restaurant: '咖啡时光',
-    rating: 4.5,
-    price: '¥18',
-    image: 'https://images.unsplash.com/photo-1498804103079-a6351b050096?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  },
-  {
-    id: 3,
-    name: '麻辣香锅',
-    restaurant: '川味小厨',
-    rating: 4.9,
-    price: '¥25',
-    image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  },
-  {
-    id: 4,
-    name: '玛格丽特披萨',
-    restaurant: '披萨先生',
-    rating: 4.4,
-    price: '¥38',
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-  }
-])
+// 统计数据
+const totalRatings = computed(() => {
+  return restaurants.value.reduce((sum, r) => sum + (r.rating_count || 0), 0)
+})
+const totalFavorites = ref(0)
 
-// 根据分类返回颜色
-function getCategoryColor(category) {
-  const colors = {
-    '食堂': 'var(--primary)',
-    '咖啡厅': '#6f4e37',
-    '中餐': 'var(--secondary)',
-    '西餐': '#2c3e50',
-    '甜品': '#e84393',
-    '烧烤': '#e67e22'
+// 平台功能介绍
+const features = [
+  {
+    icon: '🎰',
+    title: '骰子决定一切',
+    description: '选择困难时，让命运来选。转盘、抽卡、扔骰子——玄学选餐，拒绝理性'
+  },
+  {
+    icon: '⭐',
+    title: '真实的血泪史',
+    description: '每一颗星都是踩过坑后的呐喊，每一条评价都是胃的抗议'
+  },
+  {
+    icon: '📍',
+    title: '距离不再是借口',
+    description: '再也别说"太远了不想去"，我们帮你算好步行时间'
+  },
+  {
+    icon: '💾',
+    title: '你的私藏基地',
+    description: '把私藏餐厅存起来，下次让它们来拯救你'
   }
-  return colors[category] || '#95a5a6'
+]
+
+// 过滤后的餐厅列表
+const filteredRestaurants = computed(() => {
+  if (selectedCategory.value === '全部') {
+    return restaurants.value
+  }
+  return restaurants.value.filter(r => {
+    if (!r.tags || !r.tags.length) return false
+    return r.tags.some(tag => tag.includes(selectedCategory.value))
+  })
+})
+
+// 加载餐厅数据
+async function loadData() {
+  loading.value = true
+  try {
+    const data = await fetchRestaurants()
+    restaurants.value = data || []
+  } catch (error) {
+    console.error('Error loading restaurants:', error)
+  } finally {
+    loading.value = false
+  }
 }
+
+onMounted(async () => {
+  await initialize()
+  loadData()
+  // 订阅 auth 状态变化，保持导航栏登录状态同步
+  unsubscribe = subscribeToAuth(() => {
+    // 状态变化时触发组件重新渲染
+    initialize()
+  })
+})
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe()
+  }
+})
 </script>
 
 <style scoped>
@@ -308,93 +385,356 @@ function getCategoryColor(category) {
   background-color: var(--color-bg-primary);
 }
 
+/* === 用户信息栏 === */
+.user-info-bar {
+  padding: var(--space-md) 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-color-light);
+}
+
+.user-info-bar .user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.user-info-bar .user-info:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* 登录状态标签 */
+.user-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+}
+
+.status-logged-in {
+  background: rgba(107, 208, 157, 0.1);
+  color: #6BD09D;
+  border: 1px solid rgba(107, 208, 157, 0.2);
+}
+
+.status-logged-out {
+  background: rgba(255, 115, 84, 0.1);
+  color: #FF7354;
+  border: 1px solid rgba(255, 115, 84, 0.2);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-logged-in .status-dot {
+  background: #6BD09D;
+  box-shadow: 0 0 8px rgba(107, 208, 157, 0.5);
+}
+
+.status-logged-out .status-dot {
+  background: #FF7354;
+  box-shadow: 0 0 8px rgba(255, 115, 84, 0.5);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #FF8E6D, #FF7354);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-icon {
+  font-size: 18px;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-btn {
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+}
+
+.settings-btn:hover {
+  background: rgba(255, 115, 84, 0.1);
+  transform: scale(1.1);
+}
+
+.logout-btn {
+  padding: 4px 12px;
+  background: #F2EFE8;
+  border: none;
+  border-radius: 8px;
+  color: #666;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: #E8E5DE;
+  color: #333;
+}
+
+.login-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #FF8E6D, #FF7354);
+  color: #FFF;
+  text-decoration: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.login-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 115, 84, 0.35);
+  color: #FFF;
+}
+
+.login-icon {
+  font-size: 14px;
+}
+
 /* === 欢迎区域 === */
 .hero-section {
-  padding: calc(var(--space-3xl) + 60px) 0 var(--space-3xl);
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-accent) 100%);
+  padding: var(--space-2xl) 0 var(--space-xl);
+  background: linear-gradient(180deg, var(--color-bg-accent) 0%, var(--color-bg-primary) 100%);
 }
 
 .hero-content {
   text-align: center;
-  max-width: 800px;
-  margin: 0 auto var(--space-2xl);
+  max-width: 700px;
+  margin: 0 auto var(--space-xl);
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  background-color: var(--color-bg-accent);
+  border: 1px dashed var(--color-accent-primary);
+  border-radius: 50px;
+  font-size: 0.8125rem;
+  color: var(--color-accent-primary);
+  margin-bottom: var(--space-lg);
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.badge-icon {
+  font-size: 1rem;
 }
 
 .hero-title {
-  font-size: clamp(3rem, 8vw, 5rem);
+  font-size: clamp(2.5rem, 6vw, 4rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
-  margin-bottom: var(--space-lg);
+  line-height: 1.15;
+  margin-bottom: var(--space-xl);
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
 }
 
 .hero-description {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   color: var(--color-text-secondary);
+  line-height: 1.9;
   margin-bottom: var(--space-xl);
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
 }
 
-/* === 搜索栏 === */
-.search-container {
-  max-width: 700px;
-  margin: 0 auto;
-  display: flex;
-  gap: var(--space-md);
+.hero-description .highlight {
+  color: var(--color-accent-primary);
+  font-weight: 600;
 }
 
-.search-input-wrapper {
-  flex: 1;
-  position: relative;
+.vibe-tag {
+  display: inline-block;
+  margin-top: var(--space-md);
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--color-bg-secondary);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.hero-actions {
   display: flex;
+  justify-content: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
   align-items: center;
+  gap: var(--space-xl);
+  padding: var(--space-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  max-width: 500px;
+  margin: 0 auto;
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
 }
 
-.search-icon {
-  position: absolute;
-  left: var(--space-lg);
-  font-size: 1.25rem;
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+}
+
+.stat-label {
+  font-size: 0.875rem;
   color: var(--color-text-muted);
 }
 
-.search-input {
-  padding-left: calc(var(--space-xl) + 1.5rem);
-  height: 56px;
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--border-color);
-  font-size: 1.0625rem;
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background-color: var(--border-color);
 }
 
-.search-input:focus {
-  border-color: var(--color-accent-primary);
+/* === 关于平台 === */
+.about-section {
+  padding: var(--space-2xl) 0;
 }
 
-.search-button {
-  padding: var(--space-md) var(--space-2xl);
-  height: 56px;
-  border-radius: var(--radius-lg);
-  font-weight: 500;
+.about-section .section-header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.about-section .section-title {
+  font-size: 1.75rem;
+  margin-bottom: var(--space-sm);
+}
+
+.about-section .section-subtitle {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-xl);
+}
+
+.about-card {
+  padding: var(--space-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color-light);
+  text-align: center;
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.about-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-md);
+}
+
+.about-title {
+  font-size: 1.125rem;
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-primary);
+}
+
+.about-text {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+  line-height: 1.6;
 }
 
 /* === 分类筛选 === */
 .category-section {
-  padding: var(--space-3xl) 0;
+  padding: var(--space-lg) 0;
 }
 
-.category-header {
+.section-header {
   text-align: center;
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-lg);
 }
 
 .section-title {
   font-size: 2rem;
   color: var(--color-text-primary);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0;
 }
 
 .category-filters {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 
 .category-filter {
@@ -414,7 +754,6 @@ function getCategoryColor(category) {
 .category-filter:hover {
   border-color: var(--color-accent-primary);
   color: var(--color-accent-primary);
-  transform: translateY(-2px);
 }
 
 .category-filter.active {
@@ -423,107 +762,94 @@ function getCategoryColor(category) {
   border-color: var(--color-accent-primary);
 }
 
-/* === 餐馆列表 === */
+/* === 餐厅列表 === */
 .restaurants-section {
-  padding: var(--space-3xl) 0;
-  background-color: var(--color-bg-accent);
+  padding: var(--space-lg) 0 var(--space-xl);
 }
 
-.section-header {
+.loading-state,
+.empty-state {
   text-align: center;
-  margin-bottom: var(--space-2xl);
+  padding: var(--space-3xl);
+  color: var(--color-text-muted);
 }
 
-.restaurant-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-xl);
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--color-accent-primary);
+  border-radius: 50%;
+  margin: 0 auto var(--space-md);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-md);
+}
+
+.empty-state a {
+  color: var(--color-accent-primary);
+}
+
+.restaurant-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
 
 .restaurant-card {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-lg);
+  align-items: center;
+  padding: var(--space-lg);
   background-color: var(--color-bg-secondary);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  border: 1px solid var(--border-color-light);
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
   opacity: 0;
   animation: fadeInUp 0.6s ease-out forwards;
-  display: flex;
-  flex-direction: column;
 }
 
 .restaurant-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-8px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent-primary);
 }
 
-.card-image-wrapper {
-  position: relative;
-  height: 220px;
-  overflow: hidden;
+.restaurant-main {
+  min-width: 0;
 }
 
-.card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-slow);
-}
-
-.restaurant-card:hover .card-image {
-  transform: scale(1.05);
-}
-
-.card-overlay {
-  position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
-}
-
-.category-badge {
-  padding: var(--space-xs) var(--space-md);
-  background-color: rgba(255, 255, 255, 0.95);
-  color: var(--color-accent-primary);
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 20px;
-  backdrop-filter: blur(8px);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.card-content {
-  padding: var(--space-xl);
-  flex: 1;
+.restaurant-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .restaurant-name {
-  font-size: 1.375rem;
-  margin-bottom: var(--space-sm);
+  font-size: 1.25rem;
   color: var(--color-text-primary);
+  margin: 0;
 }
 
-.restaurant-description {
-  font-size: 0.9375rem;
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--space-lg);
-}
-
-.restaurant-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.rating {
+.restaurant-rating {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
 }
 
-.rating-star {
-  font-size: 1.125rem;
+.rating-stars {
+  color: var(--color-warning);
+  font-size: 1rem;
 }
 
 .rating-value {
@@ -531,114 +857,188 @@ function getCategoryColor(category) {
   color: var(--color-text-primary);
 }
 
-.review-count {
+.rating-count {
   font-size: 0.875rem;
   color: var(--color-text-muted);
 }
 
-.card-footer-content {
-  padding: var(--space-lg) var(--space-xl);
-  border-top: 1px solid var(--border-color-light);
+.restaurant-description {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+  line-height: 1.6;
 }
 
-.card-link {
-  width: 100%;
-  justify-content: center;
+.restaurant-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.tag {
+  padding: var(--space-xs) var(--space-md);
+  font-size: 0.75rem;
+  background-color: var(--color-bg-accent);
+  color: var(--color-accent-primary);
+  border-radius: 50px;
   font-weight: 500;
 }
 
-/* === 特色菜品 === */
-.featured-section {
-  padding: var(--space-3xl) 0;
-}
-
-.featured-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-xl);
-}
-
-.featured-card {
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
-  opacity: 0;
-  animation: fadeInUp 0.5s ease-out forwards;
-}
-
-.featured-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-4px);
-}
-
-.featured-image-wrapper {
-  height: 180px;
-  overflow: hidden;
-}
-
-.featured-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-slow);
-}
-
-.featured-card:hover .featured-image {
-  transform: scale(1.08);
-}
-
-.featured-content {
-  padding: var(--space-lg);
-}
-
-.featured-name {
-  font-size: 1.0625rem;
-  margin-bottom: var(--space-xs);
-  color: var(--color-text-primary);
-}
-
-.featured-restaurant {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-md);
-}
-
-.featured-meta {
+.restaurant-meta {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-lg);
+  border-left: 1px solid var(--border-color-light);
+  border-right: 1px solid var(--border-color-light);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  white-space: nowrap;
+}
+
+.meta-icon {
+  font-size: 0.875rem;
+}
+
+.meta-text {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.restaurant-actions {
+  display: flex;
   align-items: center;
 }
 
-.featured-rating {
-  font-size: 0.9375rem;
+.btn-sm {
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 0.875rem;
 }
 
-.featured-price {
-  font-weight: 600;
-  color: var(--color-accent-primary);
+/* === 平台说明 === */
+.info-section {
+  padding: var(--space-2xl) 0;
+  background: linear-gradient(180deg, var(--color-bg-accent) 0%, var(--color-bg-primary) 100%);
 }
 
-/* === 页脚 === */
-.footer-content {
+.info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: var(--space-2xl);
+  grid-template-columns: 1fr auto;
+  gap: var(--space-xl);
+  align-items: center;
 }
 
-.footer-section h5 {
-  font-size: 1.125rem;
+.info-title {
+  font-size: 1.75rem;
   margin-bottom: var(--space-lg);
 }
 
+.info-text {
+  font-size: 1.0625rem;
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+  margin-bottom: var(--space-xl);
+  max-width: 500px;
+}
+
+.tech-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.tech-tag {
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-muted);
+}
+
+.info-actions {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.info-decoration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.code-block {
+  padding: var(--space-lg);
+  background-color: #1e1e1e;
+  border-radius: var(--radius-md);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #d4d4d4;
+  box-shadow: var(--shadow-lg);
+}
+
+.code-line {
+  white-space: pre;
+}
+
+.code-comment {
+  color: #6a9955;
+}
+
+.code-keyword {
+  color: #569cd6;
+}
+
+.code-string {
+  color: #ce9178;
+}
+
+.code-number {
+  color: #b5cea8;
+}
+
+/* === 页脚 === */
+footer {
+  margin-top: 0;
+  color: rgba(255, 255, 255, 0.9);
+  background-color: var(--color-text-primary);
+  padding: var(--space-2xl) 0;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.footer-section h5 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.0625rem;
+  color: #FFFFFF;
+  margin-bottom: var(--space-md);
+  font-weight: 600;
+}
+
 .footer-description {
-  font-size: 0.9375rem;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0;
+  line-height: 1.6;
 }
 
 .footer-links {
   list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .footer-links li {
@@ -646,75 +1046,126 @@ function getCategoryColor(category) {
 }
 
 .footer-links a {
-  font-size: 0.9375rem;
-  display: block;
-  padding: var(--space-xs) 0;
-}
-
-.footer-social {
-  display: flex;
-  gap: var(--space-md);
-}
-
-.social.footer-copyright {
-  text-align: center;
-  color: rgba(255, 255, 255, 0.6);
   font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color var(--transition-fast);
+}
+
+.footer-links a:hover {
+  color: #FFFFFF;
+}
+
+.footer-divider {
+  border: none;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: var(--space-lg) 0;
+}
+
+.footer-copyright {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8125rem;
+  margin-bottom: 0;
 }
 
 /* === 响应式 === */
 @media (max-width: 1024px) {
-  .restaurant-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .restaurant-card {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
   }
 
-  .featured-grid {
-    grid-template-columns: repeat(3, 1fr);
+  .restaurant-meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: var(--space-md) 0;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--border-color-light);
+    border-bottom: 1px solid var(--border-color-light);
+  }
+
+  .restaurant-actions {
+    justify-content: flex-start;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-decoration {
+    display: none;
+  }
+
+  .code-block {
+    font-size: 0.75rem;
+    padding: var(--space-md);
+  }
+
+  .info-actions {
+    flex-direction: column;
+  }
+
+  .info-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 
 @media (max-width: 768px) {
-  .hero-section {
-    padding: calc(var(--space-2xl) + 60px) 0 var(--space-2xl);
-  }
-
-  .search-container {
+  .hero-stats {
     flex-direction: column;
+    gap: var(--space-lg);
   }
 
-  .search-button {
-    width: 100%;
+  .stat-divider {
+    width: 60px;
+    height: 1px;
   }
 
-  .restaurant-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .featured-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .footer-content {
-    grid-template-columns: 1fr;
+  .about-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 480px) {
   .hero-title {
-    font-size: 2.25rem;
+    font-size: 2rem;
   }
 
-  .category-filters {
-    gap: var(--space-sm);
+  .hero-description {
+    font-size: 1rem;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
   }
 
   .category-filter {
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-xs) var(--space-md);
     font-size: 0.875rem;
   }
+}
 
-  .featured-grid {
-    grid-template-columns: 1fr;
-  }
+/* === 登录按钮 === */
+.nav-link-btn {
+  padding: var(--space-sm) var(--space-lg) !important;
+  border-radius: var(--radius-md);
+  background-color: var(--color-accent-primary);
+  color: var(--color-text-light) !important;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-base);
+}
+
+.nav-link-btn:hover {
+  background-color: var(--color-accent-secondary);
+  color: var(--color-text-light) !important;
+}
+
+.nav-link-btn::before {
+  display: none;
 }
 </style>
