@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  food-select:
+    image: ghcr.io/${DOCKER_USERNAME:-chengjp}/food-select:latest
+    container_name: food-select
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
