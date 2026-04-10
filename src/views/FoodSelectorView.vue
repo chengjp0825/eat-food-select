@@ -2395,9 +2395,7 @@ function goToAuth() {
 }
 
 /* Header */
-.header {
-  /* 保持原有样式但移除text-align: center */
-}
+
 
 .header-content {
   display: flex;
@@ -3090,6 +3088,7 @@ function goToAuth() {
   flex: 1;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   transition: color 0.3s ease;

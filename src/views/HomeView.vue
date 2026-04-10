@@ -5,7 +5,7 @@
       <div class="container d-flex align-items-center justify-content-between">
         <router-link to="/" class="navbar-brand">
           <span class="brand-icon">🍽️</span>
-          <span class="brand-text">实验室美食分享</span>
+          <span class="brand-text">部落美食分享</span>
         </router-link>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span class="toggler-line"></span>
@@ -76,7 +76,7 @@
           <div class="hero-content">
             <div class="hero-badge animate-fade-in-up">
               <span class="badge-icon">🧪</span>
-              <span>仅限实验室内部使用</span>
+              <span>仅限部落内部使用</span>
             </div>
             <h1 class="hero-title animate-fade-in-up" style="animation-delay: 0.1s;">
               告别选择困难<br><span class="text-accent">让代码决定午餐</span>
@@ -120,7 +120,7 @@
         <div class="container">
           <div class="section-header">
             <h2 class="section-title">这玩意儿能干啥</h2>
-            <p class="section-subtitle">不是什么正经系统，但能用</p>
+            <p class="section-subtitle">不是什么正经系统，但能跑</p>
           </div>
           <div class="about-grid">
             <div class="about-card" v-for="(feature, index) in features" :key="index" :style="{ animationDelay: `${index * 0.1}s` }">
@@ -221,7 +221,7 @@
               <h2 class="info-title">等等，你说这是用 AI 写的？</h2>
               <p class="info-text">
                 是的，这个站的大部分代码是 AI 生成的。prompt 丢进去，代码吐出来。
-                所以如果有什么 bug，那一定是 AI 的问题，不是你的问题。
+                所以如果有什么 bug，那一定是 AI 的问题。
                 <br><br>
                 <span class="tech-stack">
                   <span class="tech-tag">Vue 3</span>
@@ -328,7 +328,7 @@ const features = [
   {
     icon: '📍',
     title: '距离不再是借口',
-    description: '再也别说"太远了不想去"，我们帮你算好步行时间'
+    description: '再也别说"太远了不想去"，本站帮你编好步行时间'
   },
   {
     icon: '💾',

@@ -91,7 +91,7 @@
     <!-- 页脚 -->
     <footer>
       <div class="container">
-        <p class="footer-copyright">© 2026 实验室内部使用 · 美食值得等待</p>
+        <p class="footer-copyright">© 2026 部落内部使用 · 美食值得等待</p>
       </div>
     </footer>
   </div>
