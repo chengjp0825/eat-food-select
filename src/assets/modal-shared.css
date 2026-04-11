@@ -1,0 +1,63 @@
+/* 共享Modal样式 - 被 FeedbackModal, SettingsModal, UpdateModal 使用 */
+
+/* 关闭按钮 */
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: var(--border-color);
+  transform: rotate(90deg);
+}
+
+/* 过渡动画 */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .modal-container {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+.modal-fade-leave-active .modal-container {
+  animation: modalSlideOut 0.2s ease-in;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: scale(0.95) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideOut {
+  from {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95) translateY(20px);
+    opacity: 0;
+  }
+}

@@ -275,6 +275,20 @@ export async function setUserAdmin(userId, isAdmin) {
   return data
 }
 
+// 删除用户资料（非管理员）- 通过数据库函数级联删除
+export async function deleteProfile(userId) {
+  // 调用数据库函数删除用户及其所有相关数据
+  const { data, error } = await supabase.rpc('delete_user_with_data', {
+    target_user_id: userId
+  })
+
+  if (error) {
+    console.error('Delete profile error:', error)
+    throw error
+  }
+  return data
+}
+
 // 更新用户资料
 export async function updateUserProfile(userId, updates) {
   const { data, error } = await supabase

@@ -116,6 +116,53 @@ CREATE POLICY "Users can delete own ratings" ON public.ratings FOR DELETE USING 
 CREATE POLICY "Users can insert applications" ON public.restaurant_applications FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Applications are viewable by everyone" ON public.restaurant_applications FOR SELECT USING (true);
 
+-- 用户资料：管理员可删除非管理员用户
+-- 注意：需要先创建函数才能创建此策略
+CREATE POLICY "Admins can delete non-admin profiles" ON public.profiles FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles AS p
+      WHERE p.id = auth.uid() AND p.is_admin = true
+    )
+    AND NOT is_admin
+  );
+
+-- =============================================
+-- 删除用户及其所有数据的函数
+-- =============================================
+CREATE OR REPLACE FUNCTION public.delete_user_with_data(target_user_id uuid)
+RETURNS void AS $$
+BEGIN
+  -- 只允许管理员删除非管理员用户
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND is_admin = true
+  ) THEN
+    RAISE EXCEPTION '只有管理员才能删除用户';
+  END IF;
+
+  -- 不能删除管理员
+  IF EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = target_user_id AND is_admin = true
+  ) THEN
+    RAISE EXCEPTION '不能删除管理员账户';
+  END IF;
+
+  -- 按顺序删除关联数据（由于外键约束，必须先删子表）
+  DELETE FROM public.favorites WHERE user_id = target_user_id;
+  DELETE FROM public.history WHERE user_id = target_user_id;
+  DELETE FROM public.ratings WHERE user_id = target_user_id;
+  DELETE FROM public.restaurant_applications WHERE user_id = target_user_id;
+
+  -- 删除用户资料
+  DELETE FROM public.profiles WHERE id = target_user_id;
+
+  -- 最后删除 auth.users（这会 cascade 到 profiles）
+  DELETE FROM auth.users WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- =============================================
 -- 自动创建用户资料的触发器
 -- =============================================

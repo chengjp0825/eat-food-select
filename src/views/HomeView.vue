@@ -23,50 +23,48 @@
             <li class="nav-item" v-if="isAdmin">
               <router-link to="/admin" class="nav-link">管理后台</router-link>
             </li>
-            <li class="nav-item">
-              <router-link v-if="!isAuthenticated" to="/auth" class="nav-link nav-link-btn">登录</router-link>
-              <button v-else class="nav-link nav-link-btn" @click="handleSignOut">登出</button>
-            </li>
           </ul>
         </div>
-      </div>
-    </nav>
 
-    <!-- 用户信息栏 -->
-    <div class="user-info-bar">
-      <div class="container">
-        <div class="user-info" v-if="isAuthenticated">
-          <div class="user-status-badge status-logged-in">
-            <span class="status-dot"></span>
-            已登录
-          </div>
-          <div class="user-avatar">
-            <span class="avatar-icon">👤</span>
-          </div>
-          <div class="user-details">
-            <span class="user-email">{{ profile?.username || userEmail }}</span>
+        <!-- 右侧用户信息 -->
+        <div class="nav-user-info">
+          <template v-if="isAuthenticated">
+            <div class="user-status-badge status-logged-in">
+              <span class="status-dot"></span>
+            </div>
+            <div class="user-avatar">
+              <span class="avatar-icon">👤</span>
+            </div>
+            <div class="user-details">
+              <span class="user-email">{{ profile?.username || userEmail }}</span>
+            </div>
             <div class="user-actions">
               <button v-if="isAdmin" class="settings-btn" @click="$router.push('/admin')" title="管理后台">
                 🛠️
+              </button>
+              <button v-if="isAdmin" class="settings-btn" title="近期申请">
+                📋
+              </button>
+              <button v-if="!isAdmin" class="settings-btn" @click="showFeedbackModal = true" title="反馈建议">
+                💬
+              </button>
+              <button class="settings-btn" @click="showSettingsModal = true" title="设置">
+                ⚙️
               </button>
               <button class="logout-btn" @click="handleSignOut">
                 退出
               </button>
             </div>
-          </div>
-        </div>
-        <div class="user-info" v-else>
-          <div class="user-status-badge status-logged-out">
-            <span class="status-dot"></span>
-            未登录
-          </div>
-          <router-link to="/auth" class="login-link">
-            <span class="login-icon">🔑</span>
-            登录/注册
-          </router-link>
+          </template>
+          <template v-else>
+            <router-link to="/auth" class="login-link">
+              <span class="login-icon">🔑</span>
+              登录/注册
+            </router-link>
+          </template>
         </div>
       </div>
-    </div>
+    </nav>
 
     <!-- 主内容 -->
     <div class="main-content">
@@ -254,6 +252,24 @@
       </section>
     </div>
 
+    <!-- 更新弹窗 -->
+    <UpdateModal
+      ref="updateModalRef"
+      v-model:show="showUpdateModal"
+    />
+
+    <!-- 反馈弹窗 -->
+    <FeedbackModal
+      v-model:show="showFeedbackModal"
+    />
+
+    <!-- 设置弹窗 -->
+    <SettingsModal
+      v-model:show="showSettingsModal"
+      :profile="profile"
+      :user-email="userEmail"
+    />
+
     <!-- 页脚 -->
     <footer>
       <div class="container">
@@ -268,6 +284,7 @@
               <li><router-link to="/">首页</router-link></li>
               <li><router-link to="/food-selector">今天吃什么</router-link></li>
               <li><router-link to="/restaurant/new">分享美食</router-link></li>
+              <li><a href="#" @click.prevent="openUpdateModal">查看更新内容</a></li>
             </ul>
           </div>
           <div class="footer-section">
@@ -286,10 +303,23 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { fetchRestaurants } from '../composables/useData'
+import UpdateModal from '../components/UpdateModal.vue'
+import FeedbackModal from '../components/FeedbackModal.vue'
+import SettingsModal from '../components/SettingsModal.vue'
 
 const { initialize, isAuthenticated, isAdmin, signOut, subscribeToAuth, userEmail, profile } = useAuth()
 
 let unsubscribe = null
+
+// 更新弹窗
+const showUpdateModal = ref(false)
+const updateModalRef = ref(null)
+
+// 反馈弹窗
+const showFeedbackModal = ref(false)
+
+// 设置弹窗
+const showSettingsModal = ref(false)
 
 const handleSignOut = async () => {
   try {
@@ -369,7 +399,19 @@ onMounted(async () => {
     // 状态变化时触发组件重新渲染
     initialize()
   })
+
+  // 检查是否显示更新弹窗
+  if (updateModalRef.value?.shouldShowModal()) {
+    setTimeout(() => {
+      showUpdateModal.value = true
+    }, 800) // 延迟 800ms 显示，让用户先看到页面
+  }
 })
+
+// 手动打开更新弹窗（用户点击"查看更新内容"）
+function openUpdateModal() {
+  updateModalRef.value?.showModalManually()
+}
 
 onUnmounted(() => {
   if (unsubscribe) {
@@ -385,165 +427,133 @@ onUnmounted(() => {
   background-color: var(--color-bg-primary);
 }
 
-/* === 用户信息栏 === */
-.user-info-bar {
-  padding: var(--space-md) 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border-color-light);
-}
-
-.user-info-bar .user-info {
+/* === 导航栏用户信息 === */
+.nav-user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  width: fit-content;
-  margin: 0 auto;
+  gap: 10px;
 }
 
-.user-info-bar .user-info:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-/* 登录状态标签 */
-.user-status-badge {
+.nav-user-info .user-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 12px;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 10px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  transition: all 0.3s ease;
 }
 
-.status-logged-in {
+.nav-user-info .status-logged-in {
   background: rgba(107, 208, 157, 0.1);
-  color: #6BD09D;
+  color: var(--color-success);
   border: 1px solid rgba(107, 208, 157, 0.2);
 }
 
-.status-logged-out {
-  background: rgba(255, 115, 84, 0.1);
-  color: #FF7354;
-  border: 1px solid rgba(255, 115, 84, 0.2);
-}
-
-.status-dot {
+.nav-user-info .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  display: inline-block;
+  background: var(--color-success);
+  box-shadow: 0 0 6px rgba(107, 208, 157, 0.5);
 }
 
-.status-logged-in .status-dot {
-  background: #6BD09D;
-  box-shadow: 0 0 8px rgba(107, 208, 157, 0.5);
-}
-
-.status-logged-out .status-dot {
-  background: #FF7354;
-  box-shadow: 0 0 8px rgba(255, 115, 84, 0.5);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-.user-avatar {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #FF8E6D, #FF7354);
+.nav-user-info .user-avatar {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--color-accent-secondary), var(--color-accent-primary));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.avatar-icon {
-  font-size: 18px;
+.nav-user-info .avatar-icon {
+  font-size: 16px;
 }
 
-.user-details {
+.nav-user-info .user-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
-.user-actions {
+.nav-user-info .user-email {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-user-info .user-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
 }
 
-.settings-btn {
-  padding: 4px 8px;
+.nav-user-info .settings-btn {
+  padding: 4px 6px;
   background: transparent;
   border: none;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
-.settings-btn:hover {
-  background: rgba(255, 115, 84, 0.1);
+.nav-user-info .settings-btn:hover {
+  background: rgba(var(--color-accent-primary), 0.1);
   transform: scale(1.1);
 }
 
-.logout-btn {
-  padding: 4px 12px;
-  background: #F2EFE8;
+.nav-user-info .logout-btn {
+  padding: 4px 10px;
+  background: var(--border-color);
   border: none;
-  border-radius: 8px;
-  color: #666;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.logout-btn:hover {
-  background: #E8E5DE;
-  color: #333;
+.nav-user-info .logout-btn:hover {
+  background: rgba(var(--color-accent-primary), 0.1);
+  color: var(--color-accent-primary);
 }
 
-.login-link {
+.nav-user-info .login-link {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #FF8E6D, #FF7354);
-  color: #FFF;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, var(--color-accent-secondary), var(--color-accent-primary));
+  color: var(--color-text-light);
   text-decoration: none;
-  border-radius: 12px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 12px;
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
-.login-link:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(255, 115, 84, 0.35);
-  color: #FFF;
+.nav-user-info .login-link:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-accent);
+  color: var(--color-text-light);
 }
 
-.login-icon {
-  font-size: 14px;
+/* 响应式：移动端隐藏用户信息 */
+@media (max-width: 991px) {
+  .nav-user-info {
+    display: none;
+  }
 }
 
 /* === 欢迎区域 === */
 .hero-section {
-  padding: var(--space-2xl) 0 var(--space-xl);
+  padding: calc(var(--space-2xl) + 60px) 0 var(--space-xl);
   background: linear-gradient(180deg, var(--color-bg-accent) 0%, var(--color-bg-primary) 100%);
 }
 
@@ -1007,7 +1017,6 @@ onUnmounted(() => {
 
 /* === 页脚 === */
 footer {
-  margin-top: 0;
   color: rgba(255, 255, 255, 0.9);
   background-color: var(--color-text-primary);
   padding: var(--space-2xl) 0;
@@ -1023,7 +1032,7 @@ footer {
 .footer-section h5 {
   font-family: 'Playfair Display', serif;
   font-size: 1.0625rem;
-  color: #FFFFFF;
+  color: var(--color-text-light);
   margin-bottom: var(--space-md);
   font-weight: 600;
 }
@@ -1052,7 +1061,7 @@ footer {
 }
 
 .footer-links a:hover {
-  color: #FFFFFF;
+  color: var(--color-text-light);
 }
 
 .footer-divider {
@@ -1146,26 +1155,5 @@ footer {
     padding: var(--space-xs) var(--space-md);
     font-size: 0.875rem;
   }
-}
-
-/* === 登录按钮 === */
-.nav-link-btn {
-  padding: var(--space-sm) var(--space-lg) !important;
-  border-radius: var(--radius-md);
-  background-color: var(--color-accent-primary);
-  color: var(--color-text-light) !important;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all var(--transition-base);
-}
-
-.nav-link-btn:hover {
-  background-color: var(--color-accent-secondary);
-  color: var(--color-text-light) !important;
-}
-
-.nav-link-btn::before {
-  display: none;
 }
 </style>

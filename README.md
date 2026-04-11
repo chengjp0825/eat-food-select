@@ -15,10 +15,11 @@
 ## 技术栈
 
 - **前端框架**: Vue 3 (Composition API + `<script setup>`)
+- **语言**: JavaScript (ES6+)
 - **构建工具**: Vite 8
 - **路由**: Vue Router 4
 - **UI框架**: Bootstrap 5.3 + Bootstrap Icons 1.13
-- **后端服务**: Supabase (数据存储与认证)
+- **后端服务**: Supabase (PostgreSQL + 实时订阅 + 认证)
 - **交互库**: Popper.js 2.11
 
 ## 项目结构
@@ -28,18 +29,27 @@ ewew/
 ├── src/
 │   ├── assets/          # 静态资源（图片、图标等）
 │   ├── components/      # 可复用组件
-│   │   └── HelloWorld.vue
+│   │   ├── FoodCard.vue          # 餐馆卡片组件
+│   │   ├── WinnerModal.vue       # 中奖弹窗
+│   │   ├── RatingModal.vue       # 评分弹窗
+│   │   ├── DishReviewsModal.vue  # 菜品评价列表弹窗
+│   │   ├── AppsModal.vue         # 申请管理弹窗
+│   │   ├── RestaurantDetailModal.vue  # 餐馆详情弹窗
+│   │   ├── SettingsModal.vue     # 用户设置弹窗
+│   │   └── FeedbackModal.vue     # 反馈弹窗
 │   ├── composables/     # 组合式函数
-│   │   ├── useAuth.js   # 认证相关逻辑
-│   │   ├── useData.js   # 数据管理逻辑
-│   │   └── useRatings.js # 评分系统逻辑
+│   │   ├── useAuth.js            # 认证相关逻辑
+│   │   ├── useData.js            # 数据管理逻辑
+│   │   ├── useRatings.js         # 评分系统逻辑
+│   │   └── useRestaurantDetail.js # 餐馆详情状态管理
 │   ├── lib/             # 工具库
 │   │   └── supabase.js  # Supabase客户端配置
 │   ├── views/           # 页面视图
 │   │   ├── HomeView.vue           # 首页 - 餐馆推荐与搜索
 │   │   ├── AuthView.vue           # 认证页面 - 用户登录/注册
 │   │   ├── FoodSelectorView.vue   # 食物选择器 - 跑马灯抽奖
-│   │   └── RestaurantDetailView.vue  # 餐馆详情页
+│   │   ├── RestaurantDetailView.vue  # 餐馆详情页
+│   │   └── AdminView.vue         # 管理员页面
 │   ├── router/          # 路由配置
 │   │   └── index.js
 │   ├── App.vue          # 根组件
@@ -52,6 +62,7 @@ ewew/
 │   └── icons.svg
 ├── index.html           # HTML入口
 ├── vite.config.js       # Vite配置
+├── .env.example         # 环境变量模板
 └── package.json         # 项目依赖
 ```
 
@@ -61,6 +72,7 @@ ewew/
 - 用户注册与登录
 - 基于Supabase的认证系统
 - 安全的密码管理
+- 用户资料编辑
 
 ### 首页
 - 餐馆搜索功能
@@ -88,6 +100,11 @@ ewew/
 - 成员评价展示
 - 评分分布统计（可视化进度条）
 - 菜品评价提交功能（模态框）
+- 餐馆整体评分 + 菜品级别评分
+
+### 管理员功能
+- 餐馆申请审批（批准/驳回）
+- 用户申请记录管理
 
 ## 快速开始
 
@@ -171,6 +188,7 @@ npm run preview
 - `useAuth.js`: 用户认证相关逻辑（登录、注册、登出）
 - `useData.js`: 数据获取和管理（餐厅数据、用户数据）
 - `useRatings.js`: 评分系统逻辑（评价提交、评分计算）
+- `useRestaurantDetail.js`: 餐馆详情弹窗状态管理
 
 在组件中使用示例：
 ```javascript
@@ -206,6 +224,7 @@ const id = route.params.id
 | `/auth` | auth | AuthView | 用户认证页面 |
 | `/food-selector` | food-selector | FoodSelectorView | 食物选择器 |
 | `/restaurant/:id` | restaurant-detail | RestaurantDetailView | 餐馆详情页 |
+| `/admin` | admin | AdminView | 管理员页面 |
 
 ## 浏览器支持
 

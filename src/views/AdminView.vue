@@ -14,12 +14,27 @@ import {
   rejectApplication,
   fetchAllProfiles,
   setUserAdmin,
+  deleteProfile,
   fetchAllDishes,
   isLoading
 } from '../composables/useAdmin'
+import SettingsModal from '../components/SettingsModal.vue'
 
 const router = useRouter()
-const { user, isAdmin } = useAuth()
+const { user, isAdmin, profile, userEmail, signOut } = useAuth()
+
+// 设置弹窗
+const showSettingsModal = ref(false)
+
+// 退出登录
+async function handleSignOut() {
+  try {
+    await signOut()
+    router.push('/')
+  } catch (error) {
+    console.error('Sign out error:', error)
+  }
+}
 
 // 当前激活的标签页
 const activeTab = ref('restaurants')
@@ -314,6 +329,33 @@ async function handleSetAdmin(item, isAdminVal) {
   showConfirm.value = true
 }
 
+// 删除用户
+async function handleDeleteUser(item) {
+  confirmTitle.value = '确认删除'
+  confirmMessage.value = `确定要删除用户「${item.username}」吗？此操作将同时删除该用户的所有收藏、评价和历史记录，且不可恢复。`
+  confirmAction.value = async () => {
+    try {
+      await deleteProfile(item.id)
+      showConfirm.value = false
+      await loadData()
+      // 更新统计
+      statsData.value.users = profiles.value.length
+    } catch (error) {
+      console.error('Delete user error:', error)
+      let errorMsg = '删除失败'
+      if (error.message?.includes('only admin')) {
+        errorMsg = '只有管理员才能删除用户'
+      } else if (error.message?.includes('cannot delete admin')) {
+        errorMsg = '不能删除管理员账户'
+      } else if (error.message) {
+        errorMsg = '删除失败: ' + error.message
+      }
+      alert(errorMsg)
+    }
+  }
+  showConfirm.value = true
+}
+
 // 获取状态标签类
 function getStatusClass(status) {
   const classes = {
@@ -411,9 +453,21 @@ onMounted(async () => {
             </div>
           </div>
           <div class="header-actions">
+            <button class="btn-settings" @click="showSettingsModal = true" title="设置">
+              <i class="bi bi-gear"></i>
+              <span>设置</span>
+            </button>
+            <button class="btn-home" @click="$router.push('/')" title="返回首页">
+              <i class="bi bi-house"></i>
+              <span>首页</span>
+            </button>
             <button class="btn-refresh" @click="loadAllStats" title="刷新数据">
               <i class="bi bi-arrow-clockwise"></i>
               <span>刷新</span>
+            </button>
+            <button class="btn-logout" @click="handleSignOut" title="退出登录">
+              <i class="bi bi-box-arrow-right"></i>
+              <span>退出</span>
             </button>
           </div>
         </div>
@@ -758,6 +812,14 @@ onMounted(async () => {
                 >
                   取消管理
                 </button>
+                <button
+                  v-if="!item.is_admin"
+                  class="btn-action btn-delete-user"
+                  @click="handleDeleteUser(item)"
+                  title="删除用户"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -970,32 +1032,39 @@ onMounted(async () => {
         </div>
       </div>
     </Teleport>
+
+    <!-- 设置弹窗 -->
+    <SettingsModal
+      v-model:show="showSettingsModal"
+      :profile="profile"
+      :user-email="userEmail"
+    />
   </div>
 </template>
 
 <style scoped>
 /* === 设计变量 === */
 .admin-container {
-  /* 核心色彩 - 保持原有暖色调 */
-  --color-bg: #FAF8F5;
-  --color-surface: #FFFFFF;
-  --color-surface-elevated: #FFF5F0;
-  --color-surface-hover: #FEF0EC;
-  --color-border: #E8E4DF;
-  --color-border-light: #F0EBE6;
-  --color-text: #2C2C2C;
-  --color-text-secondary: #5A5A5A;
-  --color-text-muted: #9A9A9A;
-  --color-accent: #E85D4B;
+  /* 核心色彩 - 使用全局 CSS 变量 */
+  --color-bg: var(--color-bg-primary);
+  --color-surface: var(--color-bg-secondary);
+  --color-surface-elevated: var(--color-bg-accent);
+  --color-surface-hover: var(--color-bg-accent);
+  --color-border: var(--border-color);
+  --color-border-light: var(--border-color-light);
+  --color-text: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-accent: var(--color-accent-primary);
   --color-accent-light: rgba(232, 93, 75, 0.08);
-  --color-accent-hover: #FF8B75;
-  --color-success: #5B9E6B;
+  --color-accent-hover: var(--color-accent-secondary);
+  --color-success: var(--color-success);
   --color-success-light: rgba(91, 158, 107, 0.12);
-  --color-danger: #DC3545;
+  --color-danger: var(--color-danger);
   --color-danger-light: rgba(220, 53, 69, 0.1);
-  --color-warning: #E8A85D;
+  --color-warning: var(--color-warning);
   --color-warning-light: rgba(232, 168, 93, 0.12);
-  --color-info: #6B9EC8;
+  --color-info: var(--color-info);
   --color-info-light: rgba(107, 158, 200, 0.12);
 
   /* 圆角系统 */
@@ -1073,10 +1142,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-accent) 0%, #D64A35 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-primary) 100%);
   border-radius: var(--radius-lg);
   font-size: 1.375rem;
-  color: #fff;
+  color: var(--color-text-light);
   box-shadow: var(--shadow-glow);
   position: relative;
   overflow: hidden;
@@ -1259,7 +1328,7 @@ onMounted(async () => {
 
 .tab-badge {
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-text-light);
   font-size: 0.6rem;
   font-weight: 700;
   padding: 0.125rem 0.375rem;
@@ -1354,7 +1423,7 @@ onMounted(async () => {
   background: var(--color-accent);
   border: none;
   border-radius: var(--radius-md);
-  color: #fff;
+  color: var(--color-text-light);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -1383,7 +1452,7 @@ onMounted(async () => {
 }
 
 .data-table th {
-  background: linear-gradient(180deg, var(--color-surface-elevated) 0%, #FEF9F7 100%);
+  background: linear-gradient(180deg, var(--color-surface-elevated) 0%, var(--color-bg-primary) 100%);
   padding: 0.9375rem 1rem;
   text-align: left;
   font-size: 0.6875rem;
@@ -1529,7 +1598,7 @@ onMounted(async () => {
 
 .btn-edit:hover {
   background: var(--color-info);
-  color: #fff;
+  color: var(--color-text-light);
   transform: scale(1.05);
 }
 
@@ -1540,7 +1609,7 @@ onMounted(async () => {
 
 .btn-delete:hover {
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-text-light);
   transform: scale(1.05);
 }
 
@@ -1551,7 +1620,7 @@ onMounted(async () => {
 
 .btn-approve:hover {
   background: var(--color-success);
-  color: #fff;
+  color: var(--color-text-light);
   transform: scale(1.05);
 }
 
@@ -1562,7 +1631,7 @@ onMounted(async () => {
 
 .btn-reject:hover {
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-text-light);
   transform: scale(1.05);
 }
 
@@ -1570,14 +1639,14 @@ onMounted(async () => {
   width: auto;
   padding: 0.3125rem 0.75rem;
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-text-light);
   font-size: 0.6875rem;
   font-weight: 500;
   border-radius: var(--radius-xs);
 }
 
 .btn-set-admin:hover {
-  background: #c82333;
+  background: var(--color-danger);
   transform: translateY(-1px);
 }
 
@@ -1594,6 +1663,26 @@ onMounted(async () => {
 .btn-remove-admin:hover {
   background: var(--color-border);
   color: var(--color-text);
+}
+
+.btn-delete-user {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-delete-user:hover {
+  background: var(--color-danger);
+  color: var(--color-text-light);
+  transform: scale(1.05);
 }
 
 /* === 类型和状态徽章 === */
@@ -1752,7 +1841,7 @@ onMounted(async () => {
 }
 
 .modal-panel {
-  background: #FFFFFF;
+  background: var(--color-bg-secondary);
   border-radius: var(--radius-2xl);
   width: 100%;
   max-width: 560px;
@@ -1870,8 +1959,8 @@ onMounted(async () => {
 .form-group input,
 .form-group select,
 .form-group textarea {
-  background: #FAFAFA;
-  border: 1px solid #E0DDD8;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   color: var(--color-text);
@@ -1885,8 +1974,8 @@ onMounted(async () => {
 .form-group input:hover,
 .form-group select:hover,
 .form-group textarea:hover {
-  border-color: #C8C4BE;
-  background: #FFFFFF;
+  border-color: var(--border-color);
+  background: var(--color-bg-secondary);
 }
 
 .form-group input:focus,
@@ -1918,10 +2007,10 @@ onMounted(async () => {
 
 .btn-cancel {
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F5F3F0 100%);
-  border: 1px solid #D8D4CF;
+  background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  color: #5A5A5A;
+  color: var(--color-text-secondary);
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
@@ -1930,18 +2019,18 @@ onMounted(async () => {
 }
 
 .btn-cancel:hover {
-  background: linear-gradient(180deg, #FFFFFF 0%, #E8E5E0 100%);
-  border-color: #C0BCB6;
-  color: #2C2C2C;
+  background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--border-color) 100%);
+  border-color: var(--border-color);
+  color: var(--color-text-primary);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .btn-save {
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(180deg, #FF7A68 0%, #E85D4B 100%);
+  background: linear-gradient(180deg, var(--color-accent-secondary) 0%, var(--color-accent-primary) 100%);
   border: none;
   border-radius: var(--radius-md);
-  color: #fff;
+  color: var(--color-text-light);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -1950,7 +2039,7 @@ onMounted(async () => {
 }
 
 .btn-save:hover {
-  background: linear-gradient(180deg, #FF8B75 0%, #FF7A68 100%);
+  background: linear-gradient(180deg, var(--color-accent-secondary) 0%, var(--color-accent-secondary) 100%);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(232, 93, 75, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -1962,10 +2051,10 @@ onMounted(async () => {
 
 .btn-danger {
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(180deg, #E74C5A 0%, #DC3545 100%);
+  background: linear-gradient(180deg, var(--color-danger) 0%, var(--color-danger) 100%);
   border: none;
   border-radius: var(--radius-md);
-  color: #fff;
+  color: var(--color-text-light);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -1974,13 +2063,13 @@ onMounted(async () => {
 }
 
 .btn-danger:hover {
-  background: linear-gradient(180deg, #EF5B67 0%, #E74C5A 100%);
+  background: linear-gradient(180deg, var(--color-danger) 0%, var(--color-danger) 100%);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .btn-danger:hover {
-  background: #c82333;
+  background: var(--color-danger);
   transform: translateY(-1px);
 }
 
@@ -2015,7 +2104,7 @@ onMounted(async () => {
 
 .btn-refresh:hover {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-light);
   border-color: var(--color-accent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-glow);
@@ -2023,6 +2112,67 @@ onMounted(async () => {
 
 .btn-refresh:active {
   transform: translateY(0);
+}
+
+.btn-settings {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-settings:hover {
+  background: var(--border-color);
+  color: var(--color-text-primary);
+}
+
+.btn-home {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-surface-elevated);
+  color: var(--color-accent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-home:hover {
+  background: var(--color-accent-light);
+  transform: translateY(-1px);
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-bg-accent);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-logout:hover {
+  background: var(--color-danger);
+  color: var(--color-text-light);
+  border-color: var(--color-danger);
 }
 
 .stat-icon-wrapper {
@@ -2050,7 +2200,7 @@ onMounted(async () => {
 
 .stat-card.stat-highlight .stat-icon-wrapper {
   background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
-  color: #fff;
+  color: var(--color-text-light);
 }
 
 .stat-card.stat-active {
@@ -2060,7 +2210,7 @@ onMounted(async () => {
 
 .stat-card.stat-active .stat-icon-wrapper {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-light);
 }
 
 /* === 新增标签页样式 === */
@@ -2089,7 +2239,7 @@ onMounted(async () => {
 
 .tab-item.active .tab-icon-wrapper {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-light);
   transform: scale(1.1);
 }
 
@@ -2289,7 +2439,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   height: 120px;
-  background: linear-gradient(135deg, var(--color-accent) 0%, #D64A35 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-primary) 100%);
   opacity: 0.1;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
@@ -2523,7 +2673,7 @@ onMounted(async () => {
 
 /* === 确认弹窗样式 === */
 .modal-confirm .modal-header-background {
-  background: linear-gradient(135deg, var(--color-danger) 0%, #C82333 100%);
+  background: linear-gradient(135deg, var(--color-danger) 0%, var(--color-danger) 100%);
   opacity: 0.1;
 }
 
