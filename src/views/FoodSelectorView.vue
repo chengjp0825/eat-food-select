@@ -2332,28 +2332,30 @@ function goToAuth() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
-  gap: 20px;
+  min-height: 320px;
+  gap: 16px;
+  padding: 0 16px;
 }
 
 .wheel-container {
   position: relative;
-  width: 380px;
-  height: 380px;
+  width: min(380px, 85vw);
+  height: min(380px, 85vw);
 }
 
 .wheel-container.spinning .wheel {
-  filter: drop-shadow(0 0 16px rgba(255, 115, 84, 0.25));
+  filter: drop-shadow(0 0 8px rgba(255, 115, 84, 0.2));
 }
 
 .wheel {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, #FFF8F5 0deg, #F5EDE8 30deg, #FFF8F5 60deg, #F5EDE8 90deg, #FFF8F5 120deg, #F5EDE8 150deg, #FFF8F5 180deg, #F5EDE8 210deg, #FFF8F5 240deg, #F5EDE8 270deg, #FFF8F5 300deg, #F5EDE8 330deg, #FFF8F5 360deg);
+  background: var(--color-bg-secondary);
   position: relative;
-  box-shadow: 0 8px 32px rgba(255, 115, 84, 0.15), inset 0 0 80px rgba(255, 255, 255, 0.5);
-  border: 6px solid #FFF;
+  box-shadow: 0 4px 16px rgba(255, 115, 84, 0.12), inset 0 0 40px rgba(255, 255, 255, 0.3);
+  border: 4px solid #FFF;
+  will-change: transform;
 }
 
 /* 转盘中心装饰 */
@@ -2363,99 +2365,89 @@ function goToAuth() {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
+  width: min(40px, 10vw);
+  height: min(40px, 10vw);
   background: linear-gradient(135deg, var(--color-accent-secondary), var(--color-accent-primary));
   border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(255, 115, 84, 0.4);
+  box-shadow: 0 2px 8px rgba(255, 115, 84, 0.3);
 }
 
 .wheel-pointer {
   position: absolute;
-  top: -20px;
+  top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 40px;
+  font-size: min(32px, 8vw);
   color: var(--color-accent-primary);
   z-index: 10;
-  filter: drop-shadow(0 4px 8px rgba(255, 115, 84, 0.6));
-  transition: filter 0.2s ease, transform 0.2s ease;
+  filter: drop-shadow(0 2px 4px rgba(255, 115, 84, 0.5));
 }
 
 .wheel-pointer.spinning {
-  animation: pointerBounce 0.6s ease-in-out infinite;
-  filter: drop-shadow(0 4px 8px rgba(255, 115, 84, 0.6)) drop-shadow(0 0 12px rgba(255, 115, 84, 0.4));
+  animation: pointerBounce 0.5s ease-in-out infinite;
+  filter: drop-shadow(0 2px 4px rgba(255, 115, 84, 0.5)) drop-shadow(0 0 8px rgba(255, 115, 84, 0.3));
 }
 
 @keyframes pointerBounce {
   0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
-  50% { transform: translateX(-50%) translateY(-8px) scale(1.1); }
+  50% { transform: translateX(-50%) translateY(-6px) scale(1.1); }
 }
 
 /* 转盘旋转中容器发光 */
 .wheel-container.spinning {
-  filter: drop-shadow(0 0 20px rgba(255, 115, 84, 0.3));
+  filter: drop-shadow(0 0 12px rgba(255, 115, 84, 0.2));
 }
 
 .wheel-segment {
   position: absolute;
   width: 50%;
-  height: 2px;
+  height: 1px;
   top: 50%;
   left: 50%;
   transform-origin: left center;
-  transition: opacity 0.15s ease;
-  background: linear-gradient(90deg, rgba(255, 115, 84, 0.05), rgba(255, 115, 84, 0.15));
+  background: rgba(255, 115, 84, 0.08);
 }
 
 .wheel-segment.highlight {
-  height: 3px;
-  background: linear-gradient(90deg, rgba(255, 115, 84, 0.4), var(--color-accent-primary));
-  filter: drop-shadow(0 0 6px rgba(255, 115, 84, 0.6));
-  transition: opacity 0.1s ease, height 0.15s ease, filter 0.15s ease, background 0.15s ease;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255, 115, 84, 0.3), var(--color-accent-primary));
+  filter: drop-shadow(0 0 4px rgba(255, 115, 84, 0.5));
 }
 
 .segment-content {
   position: absolute;
-  right: 18px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-secondary);
-  padding: 6px 14px;
-  border-radius: 16px;
+  padding: 4px 10px;
+  border-radius: 12px;
   background: var(--color-bg-secondary);
   font-weight: 500;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .wheel-segment.highlight .segment-content {
   background: linear-gradient(135deg, var(--color-accent-secondary), var(--color-accent-primary));
   color: var(--color-text-light);
-  transform: translateY(-50%) scale(1.15);
-  box-shadow: 0 4px 20px rgba(255, 115, 84, 0.5), 0 0 0 2px rgba(255, 115, 84, 0.2);
-  animation: segmentPulse 0.4s ease-in-out infinite;
-}
-
-@keyframes segmentPulse {
-  0%, 100% { box-shadow: 0 4px 20px rgba(255, 115, 84, 0.5), 0 0 0 2px rgba(255, 115, 84, 0.2); }
-  50% { box-shadow: 0 4px 28px rgba(255, 115, 84, 0.7), 0 0 0 4px rgba(255, 115, 84, 0.3); }
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 2px 12px rgba(255, 115, 84, 0.4);
 }
 
 .wheel-result-container {
   text-align: center;
-  padding: 20px 40px;
+  padding: 16px 32px;
   background: var(--color-bg-secondary);
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   border: 2px solid rgba(255, 115, 84, 0.1);
-  min-width: 180px;
+  min-width: 160px;
 }
 
 .current-spinning {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: bold;
   color: var(--color-accent-primary);
   text-shadow: 0 2px 8px rgba(255, 115, 84, 0.3);
@@ -2466,6 +2458,52 @@ function goToAuth() {
   0% { transform: scale(0.8); opacity: 0.5; }
   60% { transform: scale(1.05); }
   100% { transform: scale(1); opacity: 1; }
+}
+
+/* 移动端优化 */
+@media (max-width: 480px) {
+  .wheel-mode {
+    min-height: 280px;
+    gap: 12px;
+  }
+
+  .wheel-container {
+    width: min(320px, 90vw);
+    height: min(320px, 90vw);
+  }
+
+  .wheel-pointer {
+    top: -8px;
+    font-size: 24px;
+  }
+
+  .segment-content {
+    font-size: 10px;
+    padding: 3px 8px;
+    right: 8px;
+  }
+
+  .wheel-result-container {
+    padding: 12px 24px;
+    min-width: 140px;
+  }
+
+  .current-spinning {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  .wheel-container {
+    width: min(280px, 92vw);
+    height: min(280px, 92vw);
+  }
+
+  .segment-content {
+    font-size: 9px;
+    padding: 2px 6px;
+    right: 4px;
+  }
 }
 
 /* Footer */

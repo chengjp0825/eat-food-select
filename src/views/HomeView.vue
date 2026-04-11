@@ -5,7 +5,7 @@
       <div class="container d-flex align-items-center justify-content-between">
         <router-link to="/" class="navbar-brand">
           <span class="brand-icon">🍽️</span>
-          <span class="brand-text">部落美食分享</span>
+          <span class="brand-text">部落生存手册</span>
         </router-link>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span class="toggler-line"></span>

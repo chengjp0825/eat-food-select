@@ -3,7 +3,7 @@
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-header">
-          <h1 class="auth-title">🍽️ 美食分享</h1>
+          <h1 class="auth-title">🍽️ 部落生存手册</h1>
           <p class="auth-subtitle">{{ isLogin ? '登录后开始选择今天的美食' : '注册账号，记录你的美食之旅' }}</p>
         </div>
 
